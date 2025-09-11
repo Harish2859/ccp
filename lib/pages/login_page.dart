@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'signup_page.dart';
 import 'home_page.dart';
+import 'admin_dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -22,7 +23,6 @@ class _LoginPageState extends State<LoginPage>
 
   final List<Map<String, dynamic>> _roles = [
     {'id': 'citizen', 'label': 'Citizen', 'icon': '👥'},
-    {'id': 'volunteer', 'label': 'Volunteer', 'icon': '🤝'},
     {'id': 'official', 'label': 'Official', 'icon': '🛡️'},
   ];
 
@@ -569,10 +569,17 @@ class _LoginPageState extends State<LoginPage>
   }
 
   void _handleLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
-    );
+    if (_selectedRole == 'citizen') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } else if (_selectedRole == 'official') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminDashboardPage()),
+      );
+    }
   }
 
   void _handleForgotPassword() {

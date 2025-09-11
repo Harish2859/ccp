@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'home_page.dart';
+import 'admin_dashboard_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
@@ -31,7 +33,6 @@ class _SignupPageState extends State<SignupPage>
 
   final List<Map<String, dynamic>> _roles = [
     {'id': 'citizen', 'label': 'Citizen', 'icon': '👥'},
-    {'id': 'volunteer', 'label': 'Volunteer', 'icon': '🤝'},
     {'id': 'official', 'label': 'Official', 'icon': '🛡️'},
   ];
 
@@ -745,13 +746,18 @@ class _SignupPageState extends State<SignupPage>
 
   void _handleCreateAccount() {
     if (_validateForm()) {
-      // Implement create account logic
-      print('Create Account pressed');
-      print('Full Name: ${_fullNameController.text}');
-      print('Email: ${_emailController.text}');
-      print('Location: ${_locationController.text}');
-      print('Role: $_selectedRole');
-      print('Has Profile Image: ${_profileImage != null}');
+      // Navigate based on selected role
+      if (_selectedRole == 'citizen') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else if (_selectedRole == 'official') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminDashboardPage()),
+        );
+      }
     }
   }
 

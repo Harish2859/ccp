@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:latlong2/latlong.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/report_model.dart';
 import '../services/report_service.dart';
 import 'location_picker_page.dart';
@@ -15,6 +17,8 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+
   
   // Form data
   String? selectedHazardType;
@@ -390,14 +394,35 @@ class _ReportPageState extends State<ReportPage> {
                   ),
                   child: Stack(
                     children: [
-                      Center(
-                        child: Icon(
-                          attachedMedia[index].path.contains('.mp4') 
-                              ? Icons.play_circle_outline 
-                              : Icons.image,
-                          color: const Color(0xFF0096C7),
-                          size: 32,
-                        ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: attachedMedia[index].path.toLowerCase().contains('.mp4') ||
+                               attachedMedia[index].path.toLowerCase().contains('.mov')
+                            ? Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.black,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.play_circle_outline,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                                ),
+                              )
+                            : Image.file(
+                                attachedMedia[index],
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    color: Color(0xFF0096C7),
+                                    size: 32,
+                                  ),
+                                ),
+                              ),
                       ),
                       Positioned(
                         top: 4,
@@ -703,26 +728,83 @@ class _ReportPageState extends State<ReportPage> {
     }
   }
 
-  void _takePhoto() {
-    // Implement camera functionality
-    // This would use image_picker package
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Camera functionality would be implemented here')),
-    );
+  Future<void> _takePhoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (photo != null && mounted) {
+        setState(() {
+          attachedMedia.add(File(photo.path));
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Photo captured successfully!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error taking photo: $e')),
+        );
+      }
+    }
   }
 
-  void _recordVideo() {
-    // Implement video recording functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Video recording functionality would be implemented here')),
-    );
+  Future<void> _recordVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(
+        source: ImageSource.camera,
+        maxDuration: const Duration(minutes: 2),
+      );
+      if (video != null && mounted) {
+        setState(() {
+          attachedMedia.add(File(video.path));
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Video recorded successfully!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error recording video: $e')),
+        );
+      }
+    }
   }
 
-  void _pickFromGallery() {
-    // Implement gallery picker functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gallery picker functionality would be implemented here')),
-    );
+  Future<void> _pickFromGallery() async {
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (file != null && mounted) {
+        setState(() {
+          attachedMedia.add(File(file.path));
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Image selected from gallery!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error selecting image: $e')),
+        );
+      }
+    }
   }
 
   void _removeMedia(int index) {
@@ -732,23 +814,53 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   void _getCurrentLocation() async {
-    // Implement location services
-    // This would use geolocator package
-    await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-    setState(() {
-      currentLocation = {
-        'latitude': 11.0168, // Example coordinates for Chennai
-        'longitude': 76.9558,
-      };
-      isLocationCaptured = true;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Location captured successfully'),
-        backgroundColor: Color(0xFF52B788),
-      ),
-    );
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location permissions are denied'),
+                backgroundColor: Color(0xFFFF6F61),
+              ),
+            );
+          }
+          return;
+        }
+      }
+      
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      
+      if (mounted) {
+        setState(() {
+          currentLocation = {
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          };
+          isLocationCaptured = true;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location captured successfully'),
+            backgroundColor: Color(0xFF52B788),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to get location: $e'),
+            backgroundColor: const Color(0xFFFF6F61),
+          ),
+        );
+      }
+    }
   }
 
   void _pinOnMap() async {
@@ -830,7 +942,7 @@ class _ReportPageState extends State<ReportPage> {
     );
 
     // Add to global service
-    ReportService().addReport(newReport);
+    ReportService.addReport(newReport);
 
     setState(() {
       isSubmitting = false;

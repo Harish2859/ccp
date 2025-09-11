@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:io';
 import '../models/report_model.dart';
 import '../services/report_service.dart';
 import '../utils/map_utils.dart';
@@ -22,7 +23,7 @@ class _HazardMapPageState extends State<HazardMapPage> {
 
   @override
   Widget build(BuildContext context) {
-    final reports = ReportService().reports;
+    final reports = ReportService.getReports();
     final filteredReports = selectedFilter == 'All' 
         ? reports 
         : reports.where((r) => r.hazardType == selectedFilter).toList();
@@ -94,30 +95,63 @@ class _HazardMapPageState extends State<HazardMapPage> {
   void _showReportDetails(BuildContext context, Report report) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.warning, color: _getSeverityColor(report.severity)),
-                const SizedBox(width: 8),
-                Text(_getHazardLabel(report.hazardType), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text('Severity: ${report.severity}', style: TextStyle(color: _getSeverityColor(report.severity), fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Text(report.description),
-            const SizedBox(height: 8),
-            Text('Reported: ${_formatDateTime(report.timestamp)}', style: const TextStyle(color: Colors.grey)),
-            if (report.mediaPaths.isNotEmpty) ...[
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.warning, color: _getSeverityColor(report.severity)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_getHazardLabel(report.hazardType), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                ],
+              ),
               const SizedBox(height: 8),
-              Text('${report.mediaPaths.length} media file(s) attached'),
+              Text('Severity: ${report.severity}', style: TextStyle(color: _getSeverityColor(report.severity), fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text(report.description),
+              const SizedBox(height: 8),
+              Text('Reported: ${_formatDateTime(report.timestamp)}', style: const TextStyle(color: Colors.grey)),
+              if (report.mediaPaths.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('Media:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...report.mediaPaths.map((path) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')
+                      ? Container(
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.play_circle_outline, color: Colors.white, size: 50),
+                          ),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(path),
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              height: 200,
+                              color: Colors.grey[300],
+                              child: const Center(child: Icon(Icons.error)),
+                            ),
+                          ),
+                        ),
+                )),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

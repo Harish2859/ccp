@@ -3,8 +3,6 @@ import 'report_service.dart';
 
 class DemoData {
   static void loadDemoReports() {
-    final service = ReportService();
-    
     // Add some demo reports for testing
     final demoReports = [
       Report(
@@ -50,7 +48,7 @@ class DemoData {
     ];
     
     for (final report in demoReports) {
-      service.addReport(report);
+      ReportService.addReport(report);
     }
   }
 }

@@ -5,6 +5,7 @@ import 'report_page.dart';
 import 'hazard_map_page.dart';
 import 'my_reports_page.dart';
 import 'social_trends_page.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -86,6 +87,11 @@ class _HomePageState extends State<HomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SocialTrendsPage()),
+          );
+        } else if (index == 4) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfilePage()),
           );
         } else {
           setState(() {

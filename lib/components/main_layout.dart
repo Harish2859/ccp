@@ -12,8 +12,6 @@ class MainLayout extends StatelessWidget {
   final VoidCallback? onNotificationTap;
   final VoidCallback? onMessageTap;
   final VoidCallback? onSettingsTap;
-  final VoidCallback? onAboutTap;
-  final VoidCallback? onHelpTap;
   final VoidCallback? onDrawerSettingsTap;
   final VoidCallback? onMyReportsTap;
   final VoidCallback? onLogoutTap;
@@ -28,8 +26,6 @@ class MainLayout extends StatelessWidget {
     this.onNotificationTap,
     this.onMessageTap,
     this.onSettingsTap,
-    this.onAboutTap,
-    this.onHelpTap,
     this.onDrawerSettingsTap,
     this.onMyReportsTap,
     this.onLogoutTap,
@@ -46,8 +42,6 @@ class MainLayout extends StatelessWidget {
         onSettingsTap: onSettingsTap,
       ),
       drawer: AppDrawer(
-        onAboutTap: onAboutTap,
-        onHelpTap: onHelpTap,
         onSettingsTap: onDrawerSettingsTap,
         onMyReportsTap: onMyReportsTap,
         onLogoutTap: onLogoutTap,
