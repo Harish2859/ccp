@@ -281,6 +281,33 @@ class _HazardMapPageState extends State<HazardMapPage> {
                   Icon(Icons.warning, color: _getSeverityColor(report.severity)),
                   const SizedBox(width: 8),
                   Expanded(child: Text(_getHazardLabel(report.hazardType), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                  if (report.status != 'pending')
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusBadgeColor(report.status),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getStatusIcon(report.status),
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getStatusLabel(report.status),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -401,6 +428,33 @@ class _HazardMapPageState extends State<HazardMapPage> {
     }
   }
 
+  Color _getStatusBadgeColor(String status) {
+    switch (status) {
+      case 'valid': return Colors.green;
+      case 'false': return Colors.red;
+      case 'urgent': return Colors.orange;
+      default: return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'valid': return Icons.check;
+      case 'false': return Icons.close;
+      case 'urgent': return Icons.priority_high;
+      default: return Icons.help;
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'valid': return 'VERIFIED';
+      case 'false': return 'FALSE';
+      case 'urgent': return 'URGENT';
+      default: return 'PENDING';
+    }
+  }
+
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
@@ -408,14 +462,37 @@ class _HazardMapPageState extends State<HazardMapPage> {
   List<Marker> _buildMarkers(List<Report> reports) {
     return reports.map((report) => Marker(
       point: LatLng(report.lat, report.lng),
-      width: 40,
-      height: 40,
+      width: 50,
+      height: 50,
       child: GestureDetector(
         onTap: () => _showReportDetails(context, report),
-        child: Icon(
-          Icons.warning,
-          color: _getSeverityColor(report.severity),
-          size: 35,
+        child: Stack(
+          children: [
+            Icon(
+              Icons.warning,
+              color: _getSeverityColor(report.severity),
+              size: 35,
+            ),
+            if (report.status != 'pending')
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: _getStatusBadgeColor(report.status),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1),
+                  ),
+                  child: Icon(
+                    _getStatusIcon(report.status),
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     )).toList();
