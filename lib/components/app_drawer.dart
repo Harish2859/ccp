@@ -4,6 +4,7 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback? onAboutTap;
   final VoidCallback? onHelpTap;
   final VoidCallback? onSettingsTap;
+  final VoidCallback? onMyReportsTap;
   final VoidCallback? onLogoutTap;
 
   const AppDrawer({
@@ -11,6 +12,7 @@ class AppDrawer extends StatelessWidget {
     this.onAboutTap,
     this.onHelpTap,
     this.onSettingsTap,
+    this.onMyReportsTap,
     this.onLogoutTap,
   }) : super(key: key);
 
@@ -37,11 +39,16 @@ class AppDrawer extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      '🌊',
-                      style: TextStyle(fontSize: 48),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Color(0xFF1E3A8A),
+                      ),
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: 12),
                     Text(
                       'OceanPulse',
                       style: TextStyle(
@@ -66,6 +73,11 @@ class AppDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
+                ListTile(
+                  leading: const Icon(Icons.assignment_outlined),
+                  title: const Text('My Reports'),
+                  onTap: onMyReportsTap ?? () => Navigator.pop(context),
+                ),
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text('About'),

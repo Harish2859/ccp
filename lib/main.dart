@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'pages/login_page.dart';
+import 'services/demo_data.dart';
 
 void main() {
+  DemoData.loadDemoReports();
   runApp(const MyApp());
 }
 

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:latlong2/latlong.dart';
+import '../models/report_model.dart';
+import '../services/report_service.dart';
+import 'location_picker_page.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({Key? key}) : super(key: key);
@@ -747,11 +751,34 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
-  void _pinOnMap() {
-    // Navigate to map for manual location selection
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Map location picker would open here')),
+  void _pinOnMap() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LocationPickerPage(
+          initialLocation: currentLocation != null 
+              ? LatLng(currentLocation!['latitude']!, currentLocation!['longitude']!)
+              : null,
+        ),
+      ),
     );
+    
+    if (result != null && result is LatLng) {
+      setState(() {
+        currentLocation = {
+          'latitude': result.latitude,
+          'longitude': result.longitude,
+        };
+        isLocationCaptured = true;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location selected from map'),
+          backgroundColor: Color(0xFF52B788),
+        ),
+      );
+    }
   }
 
   void _checkConnectivity() {
@@ -773,50 +800,52 @@ class _ReportPageState extends State<ReportPage> {
       );
       return;
     }
+    if (currentLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please capture location first'),
+          backgroundColor: Color(0xFFFF6F61),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       isSubmitting = true;
     });
 
-    // Simulate API call or local storage
-    await Future.delayed(const Duration(seconds: 2));
+    // Simulate API call
+    await Future.delayed(const Duration(seconds: 1));
 
-    // Create report data
-    Map<String, dynamic> reportData = {
-      'hazardType': selectedHazardType,
-      'description': description,
-      'severity': selectedSeverity,
-      'location': currentLocation,
-      'media': attachedMedia.map((file) => file.path).toList(),
-      'timestamp': DateTime.now().toIso8601String(),
-      'isOnline': isOnline,
-    };
+    // Create Report object
+    final newReport = Report(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      hazardType: selectedHazardType!,
+      description: _descriptionController.text.trim(),
+      severity: selectedSeverity,
+      lat: currentLocation!['latitude']!,
+      lng: currentLocation!['longitude']!,
+      mediaPaths: attachedMedia.map((file) => file.path).toList(),
+      timestamp: DateTime.now(),
+    );
 
-    if (isOnline) {
-      // Submit to server
-      _submitToServer(reportData);
-    } else {
-      // Save locally for later sync
-      _saveLocally(reportData);
-    }
+    // Add to global service
+    ReportService().addReport(newReport);
 
     setState(() {
       isSubmitting = false;
     });
 
-    // Show success message and navigate back
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isOnline 
-              ? 'Report submitted successfully!' 
-              : 'Report saved offline. Will sync when online.',
-        ),
-        backgroundColor: const Color(0xFF2EC4B6),
+      const SnackBar(
+        content: Text('Report submitted successfully!'),
+        backgroundColor: Color(0xFF2EC4B6),
       ),
     );
 
-    Navigator.pop(context);
+    // Return the report to the calling page
+    Navigator.pop(context, newReport);
   }
 
   void _submitToServer(Map<String, dynamic> reportData) {
