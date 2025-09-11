@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../components/index.dart';
+import '../services/feed_service.dart';
 import 'notifications_page.dart';
 import 'report_page.dart';
 import 'hazard_map_page.dart';
@@ -68,6 +69,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Combine static posts with dynamic alerts from FeedService
+    final allPosts = [...FeedService.getAll(), ...climatePosts];
+    
     return MainLayout(
       title: 'Home',
       currentNavIndex: _currentNavIndex,
@@ -115,9 +119,9 @@ class _HomePageState extends State<HomePage> {
         color: const Color(0xFFFFFFFF),
         child: ListView.builder(
           padding: const EdgeInsets.all(0),
-          itemCount: climatePosts.length,
+          itemCount: allPosts.length,
           itemBuilder: (context, index) {
-            return _buildClimatePost(climatePosts[index]);
+            return _buildClimatePost(allPosts[index]);
           },
         ),
       ),

@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class AppDrawer extends StatelessWidget {
   final VoidCallback? onSettingsTap;
   final VoidCallback? onMyReportsTap;
+  final VoidCallback? onSendAlertTap;
   final VoidCallback? onLogoutTap;
 
   const AppDrawer({
     Key? key,
     this.onSettingsTap,
     this.onMyReportsTap,
+    this.onSendAlertTap,
     this.onLogoutTap,
   }) : super(key: key);
 
@@ -73,6 +75,11 @@ class AppDrawer extends StatelessWidget {
                   leading: const Icon(Icons.assignment_outlined),
                   title: const Text('My Reports'),
                   onTap: onMyReportsTap ?? () => Navigator.pop(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.campaign_outlined),
+                  title: const Text('Send Alert'),
+                  onTap: onSendAlertTap ?? () => Navigator.pop(context),
                 ),
                 ListTile(
                   leading: const Icon(Icons.settings_outlined),

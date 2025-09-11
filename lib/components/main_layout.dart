@@ -14,6 +14,7 @@ class MainLayout extends StatelessWidget {
   final VoidCallback? onSettingsTap;
   final VoidCallback? onDrawerSettingsTap;
   final VoidCallback? onMyReportsTap;
+  final VoidCallback? onSendAlertTap;
   final VoidCallback? onLogoutTap;
 
   const MainLayout({
@@ -28,6 +29,7 @@ class MainLayout extends StatelessWidget {
     this.onSettingsTap,
     this.onDrawerSettingsTap,
     this.onMyReportsTap,
+    this.onSendAlertTap,
     this.onLogoutTap,
   }) : super(key: key);
 
@@ -44,6 +46,7 @@ class MainLayout extends StatelessWidget {
       drawer: AppDrawer(
         onSettingsTap: onDrawerSettingsTap,
         onMyReportsTap: onMyReportsTap,
+        onSendAlertTap: onSendAlertTap,
         onLogoutTap: onLogoutTap,
       ),
       body: body,

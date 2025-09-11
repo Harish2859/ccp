@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
+import '../models/alert.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -11,7 +13,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   String selectedFilter = 'All';
   
   // Sample notifications data
-  final List<Map<String, dynamic>> notifications = [
+  final List<Map<String, dynamic>> staticNotifications = [
     {
       'id': 1,
       'type': 'disaster_report',
@@ -104,6 +106,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Combine static notifications with dynamic ones from NotificationService
+    final dynamicNotifications = NotificationService.getAll().map((notif) => {
+      'id': notif.id,
+      'type': notif.type,
+      'title': notif.title,
+      'message': notif.message,
+      'location': notif.location,
+      'severity': notif.severity,
+      'timeAgo': _formatTimeAgo(notif.timestamp),
+      'isRead': false,
+      'userData': notif.userData,
+    }).toList();
+    
+    final notifications = [...dynamicNotifications, ...staticNotifications];
+    
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       appBar: _buildAppBar(),
@@ -119,7 +136,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    int unreadCount = notifications.where((n) => !n['isRead']).length;
+    final dynamicNotifications = NotificationService.getAll().map((notif) => {
+      'isRead': false,
+    }).toList();
+    final allNotifications = [...dynamicNotifications, ...staticNotifications];
+    int unreadCount = allNotifications.where((n) => !n['isRead']).length;
     
     return AppBar(
       backgroundColor: const Color(0xFF023E8A), // Deep Blue
@@ -412,6 +433,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   List<Map<String, dynamic>> _getFilteredNotifications() {
+    final dynamicNotifications = NotificationService.getAll().map((notif) => {
+      'id': notif.id,
+      'type': notif.type,
+      'title': notif.title,
+      'message': notif.message,
+      'location': notif.location,
+      'severity': notif.severity,
+      'timeAgo': _formatTimeAgo(notif.timestamp),
+      'isRead': false,
+      'userData': notif.userData,
+    }).toList();
+    
+    final notifications = [...dynamicNotifications, ...staticNotifications];
+    
     if (selectedFilter == 'All') return notifications;
     
     String filterType;
@@ -564,7 +599,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void _markAllAsRead() {
     setState(() {
-      for (var notification in notifications) {
+      for (var notification in staticNotifications) {
         notification['isRead'] = true;
       }
     });
@@ -614,5 +649,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       ),
     );
+  }
+
+  String _formatTimeAgo(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    return '${diff.inDays} days ago';
   }
 }

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../models/social_post.dart';
+import '../models/report_model.dart';
+import '../services/social_post_service.dart';
 
 class SocialTrendsPage extends StatefulWidget {
-  const SocialTrendsPage({super.key});
+  final bool isOfficial;
+  
+  const SocialTrendsPage({super.key, this.isOfficial = false});
 
   @override
   State<SocialTrendsPage> createState() => _SocialTrendsPageState();
@@ -34,7 +39,7 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
   };
 
   List<SocialPost> get filteredPosts {
-    var posts = mockPosts;
+    var posts = SocialPostService.getPosts();
     if (selectedRegion != 'All India') {
       posts = posts.where((p) => p.region == selectedRegion).toList();
     }
@@ -44,57 +49,7 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
     return posts;
   }
 
-  final List<SocialPost> mockPosts = [
-    SocialPost(
-      username: '@coastaluser',
-      content: 'Huge waves reported in Goa beach area, people moving inland. Stay safe everyone!',
-      region: 'Goa',
-      sentiment: 'negative',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      location: 'Goa',
-      likes: 45,
-      retweets: 12,
-    ),
-    SocialPost(
-      username: '@weatherwatch',
-      content: 'Cyclone alert issued for Odisha coast. Fishermen advised to return to shore immediately.',
-      region: 'Odisha',
-      sentiment: 'negative',
-      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
-      location: 'Odisha',
-      likes: 89,
-      retweets: 34,
-    ),
-    SocialPost(
-      username: '@chennaiweather',
-      content: 'All clear in Chennai today! Perfect weather for beach activities.',
-      region: 'Tamil Nadu',
-      sentiment: 'positive',
-      timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-      location: 'Chennai, Tamil Nadu',
-      likes: 23,
-      retweets: 5,
-    ),
-    SocialPost(
-      username: '@keralacoast',
-      content: 'Moderate waves along Kerala coastline. Normal fishing operations can continue.',
-      region: 'Kerala',
-      sentiment: 'neutral',
-      timestamp: DateTime.now().subtract(const Duration(hours: 8)),
-      location: 'Kerala',
-      likes: 15,
-      retweets: 3,
-    ),
-    SocialPost(
-      username: '@incoisofficial',
-      content: 'Tsunami warning lifted for all Indian coastal areas. Situation back to normal.',
-      region: 'All India',
-      sentiment: 'positive',
-      timestamp: DateTime.now().subtract(const Duration(hours: 12)),
-      likes: 156,
-      retweets: 78,
-    ),
-  ];
+  Map<String, int> get analytics => SocialPostService.getAnalytics();
 
   @override
   Widget build(BuildContext context) {
@@ -104,17 +59,31 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
         title: const Text('Social Trends'),
         backgroundColor: const Color(0xFF023E8A),
         foregroundColor: Colors.white,
+        actions: widget.isOfficial ? [
+          IconButton(
+            icon: const Icon(Icons.file_download),
+            onPressed: _exportData,
+            tooltip: 'Export Data',
+          ),
+        ] : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.isOfficial) ...[
+              _buildAnalyticsCards(),
+              const SizedBox(height: 20),
+            ],
             _buildFiltersSection(),
             const SizedBox(height: 20),
             _buildKeywordCloud(),
             const SizedBox(height: 20),
             _buildSentimentBar(),
+            const SizedBox(height: 20),
+            if (widget.isOfficial)
+              _buildCompareButton(),
             const SizedBox(height: 20),
             _buildTrendingPostsList(),
           ],
@@ -211,7 +180,12 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
               final opacity = (0.3 + (entry.value / 60)).clamp(0.3, 1.0);
               
               return GestureDetector(
-                onTap: () => setState(() => selectedKeyword = isSelected ? null : entry.key),
+                onTap: () {
+                  setState(() => selectedKeyword = isSelected ? null : entry.key);
+                  if (widget.isOfficial && !isSelected) {
+                    _showKeywordCrossCheck(entry.key);
+                  }
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -406,6 +380,10 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
               const SizedBox(width: 4),
               Text('${post.retweets}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               const Spacer(),
+              if (widget.isOfficial) ...[
+                _buildValidationButtons(post),
+                const SizedBox(width: 8),
+              ],
               GestureDetector(
                 onTap: () => _showPostDetails(post),
                 child: const Text('View Details', style: TextStyle(color: Color(0xFF00B4D8), fontSize: 12)),
@@ -439,6 +417,268 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
     } else {
       return '${difference.inDays}d';
     }
+  }
+
+  Widget _buildAnalyticsCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildAnalyticsCard(
+            'Posts Today',
+            analytics['postsToday'].toString(),
+            Icons.today,
+            const Color(0xFF00B4D8),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildAnalyticsCard(
+            'Hazard Keywords',
+            analytics['hazardKeywords'].toString(),
+            Icons.warning,
+            const Color(0xFFFF6F61),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildAnalyticsCard(
+            'Negative %',
+            '${analytics['negativePercentage']}%',
+            Icons.sentiment_dissatisfied,
+            const Color(0xFFFF6F61),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnalyticsCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompareButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _showCompareModal,
+        icon: const Icon(Icons.compare_arrows, color: Colors.white),
+        label: const Text('Compare Reports vs Social Media', style: TextStyle(color: Colors.white)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF023E8A),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildValidationButtons(SocialPost post) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildValidationButton(Icons.check, Colors.green, 'relevant', post),
+        const SizedBox(width: 4),
+        _buildValidationButton(Icons.close, Colors.red, 'false', post),
+        const SizedBox(width: 4),
+        _buildValidationButton(Icons.help_outline, Colors.orange, 'verify', post),
+      ],
+    );
+  }
+
+  Widget _buildValidationButton(IconData icon, Color color, String status, SocialPost post) {
+    final isSelected = post.status == status;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          SocialPostService.updatePostStatus(post, isSelected ? 'pending' : status);
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.grey[300],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Icon(icon, size: 12, color: isSelected ? Colors.white : Colors.grey[600]),
+      ),
+    );
+  }
+
+  void _showKeywordCrossCheck(String keyword) {
+    final posts = SocialPostService.getPostsByKeyword(keyword);
+    final reports = SocialPostService.getRelatedReports(keyword);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cross-Check: $keyword'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: Column(
+            children: [
+              Text('${posts.length} related posts, ${reports.length} citizen reports'),
+              const SizedBox(height: 16),
+              Expanded(
+                child: DefaultTabController(
+                  length: 2,
+                  child: Column(
+                    children: [
+                      const TabBar(
+                        tabs: [
+                          Tab(text: 'Posts'),
+                          Tab(text: 'Reports'),
+                        ],
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            ListView.builder(
+                              itemCount: posts.length,
+                              itemBuilder: (context, index) => ListTile(
+                                title: Text(posts[index].username),
+                                subtitle: Text(posts[index].content, maxLines: 2),
+                                trailing: _getSentimentIcon(posts[index].sentiment),
+                              ),
+                            ),
+                            ListView.builder(
+                              itemCount: reports.length,
+                              itemBuilder: (context, index) => ListTile(
+                                title: Text(reports[index].hazardType),
+                                subtitle: Text(reports[index].description, maxLines: 2),
+                                trailing: Text(reports[index].severity),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCompareModal() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reports vs Social Media'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: DefaultTabController(
+            length: 2,
+            child: Column(
+              children: [
+                const TabBar(
+                  tabs: [
+                    Tab(text: 'Latest Reports'),
+                    Tab(text: 'Latest Posts'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      ListView.builder(
+                        itemCount: 3,
+                        itemBuilder: (context, index) => ListTile(
+                          title: Text('Report ${index + 1}'),
+                          subtitle: const Text('Sample report description'),
+                          trailing: const Text('High'),
+                        ),
+                      ),
+                      ListView.builder(
+                        itemCount: filteredPosts.take(3).length,
+                        itemBuilder: (context, index) {
+                          final post = filteredPosts[index];
+                          return ListTile(
+                            title: Text(post.username),
+                            subtitle: Text(post.content, maxLines: 2),
+                            trailing: _getSentimentIcon(post.sentiment),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _exportData() {
+    final posts = filteredPosts;
+    final jsonData = posts.map((post) => post.toJson()).toList();
+    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Exported ${posts.length} posts to JSON'),
+        backgroundColor: const Color(0xFF2EC4B6),
+        action: SnackBarAction(
+          label: 'View',
+          textColor: Colors.white,
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Exported Data'),
+                content: SingleChildScrollView(
+                  child: Text(jsonString, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _showPostDetails(SocialPost post) {
@@ -493,6 +733,15 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
                 ],
               ),
             ],
+            if (widget.isOfficial) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(post.status.toUpperCase()),
+                ],
+              ),
+            ]
           ],
         ),
       ),

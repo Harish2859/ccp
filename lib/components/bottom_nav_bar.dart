@@ -38,9 +38,9 @@ class BottomNavBar extends StatelessWidget {
           label: 'Reports',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.settings_outlined),
-          activeIcon: Icon(Icons.settings),
-          label: 'Manage',
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Profile',
         ),
       ];
     } else {

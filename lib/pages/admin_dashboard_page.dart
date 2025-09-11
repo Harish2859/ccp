@@ -5,6 +5,8 @@ import '../components/bottom_nav_bar.dart';
 import 'reports_management_page.dart';
 import 'hazard_map_page.dart';
 import 'social_trends_page.dart';
+import 'alerts_page.dart';
+import 'admin_profile_page.dart';
 
 // Data Models
 class DashboardStats {
@@ -167,12 +169,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         } else if (index == 2) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const SocialTrendsPage()),
+            MaterialPageRoute(builder: (context) => const SocialTrendsPage(isOfficial: true)),
           );
         } else if (index == 3) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ReportsManagementPage()),
+          );
+        } else if (index == 4) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminProfilePage()),
           );
         } else {
           setState(() {
@@ -181,6 +188,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         }
       },
       onNotificationTap: () => _showNotifications(),
+      onSendAlertTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AlertsPage()),
+      ),
       body: RefreshIndicator(
           onRefresh: () async => _refreshDashboard(),
           color: turquoise,
@@ -196,10 +207,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 
                 // Overview Cards Grid
                 _buildOverviewCardsGrid(),
-                const SizedBox(height: 24),
-                
-                // Bottom CTA
-                _buildSendAlertCTA(),
                 const SizedBox(height: 20),
               ],
             ),
@@ -287,13 +294,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           onTap: () => _navigateToHighSeverityAlerts(),
         ),
         _buildOverviewCard(
-          title: 'Active Alerts Sent',
-          count: _stats.activeAlerts.toString(),
-          icon: Icons.campaign,
-          backgroundColor: seaGreen.withOpacity(0.1),
-          iconColor: seaGreen,
-          percentChange: 12.3,
-          onTap: () => _navigateToActiveAlerts(),
+          title: 'Social Trends',
+          count: 'View',
+          icon: Icons.trending_up,
+          backgroundColor: Colors.purple.withOpacity(0.1),
+          iconColor: Colors.purple,
+          percentChange: 8.5,
+          onTap: () => _navigateToSocialTrends(),
         ),
       ],
     );
@@ -403,39 +410,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
 
 
-  Widget _buildSendAlertCTA() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alerts feature coming soon')),
-        ),
-        icon: const Icon(Icons.campaign, color: Colors.white),
-        label: const Text(
-          'Send New Alert 🚨',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: coralOrange,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 4,
-        ),
-      ),
-    );
-  }
+
 
   // Navigation Methods
   void _navigateToReportsManagement() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ReportsManagementPage()),
+    );
+  }
+
+  void _navigateToSocialTrends() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SocialTrendsPage(isOfficial: true)),
     );
   }
 
