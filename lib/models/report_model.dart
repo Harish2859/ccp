@@ -7,6 +7,7 @@ class Report {
   final double lng;
   final List<String> mediaPaths;
   final DateTime timestamp;
+  String status; // "pending", "valid", "false", "urgent"
 
   Report({
     required this.id,
@@ -17,6 +18,7 @@ class Report {
     required this.lng,
     required this.mediaPaths,
     required this.timestamp,
+    this.status = 'pending',
   });
 
   Map<String, dynamic> toJson() {
@@ -29,6 +31,7 @@ class Report {
       'lng': lng,
       'mediaPaths': mediaPaths,
       'timestamp': timestamp.toIso8601String(),
+      'status': status,
     };
   }
 
@@ -42,6 +45,7 @@ class Report {
       lng: json['lng'].toDouble(),
       mediaPaths: List<String>.from(json['mediaPaths']),
       timestamp: DateTime.parse(json['timestamp']),
+      status: json['status'] ?? 'pending',
     );
   }
 }

@@ -20,4 +20,11 @@ class ReportService {
       return null;
     }
   }
+
+  static void updateReportStatus(Report report, String status) {
+    final index = _reports.indexWhere((r) => r.id == report.id);
+    if (index != -1) {
+      _reports[index].status = status;
+    }
+  }
 }

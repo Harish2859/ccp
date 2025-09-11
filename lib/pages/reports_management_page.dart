@@ -96,9 +96,7 @@ class _ReportsManagementPageState extends State<ReportsManagementPage> {
           _currentNavIndex = index;
         });
       },
-      body: Container(
-        color: lightGray,
-        child: SingleChildScrollView(
+      body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +105,6 @@ class _ReportsManagementPageState extends State<ReportsManagementPage> {
             ],
           ),
         ),
-      ),
     );
   }
 

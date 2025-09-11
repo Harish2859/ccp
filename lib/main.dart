@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter App',
       theme: ThemeData(
         primaryColor: const Color(0xFF0077BE), // Ocean blue
-        scaffoldBackgroundColor: const Color(0xFF0077BE),
+        scaffoldBackgroundColor: Colors.white,
       ),
       home: const SplashScreen(),
     );

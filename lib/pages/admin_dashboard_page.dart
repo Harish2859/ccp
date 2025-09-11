@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../components/main_layout.dart';
 import '../components/bottom_nav_bar.dart';
 import 'reports_management_page.dart';
+import 'hazard_map_page.dart';
+import 'social_trends_page.dart';
 
 // Data Models
 class DashboardStats {
@@ -157,14 +159,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       currentNavIndex: _currentNavIndex,
       userRole: UserRole.official,
       onNavTap: (index) {
-        setState(() {
-          _currentNavIndex = index;
-        });
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HazardMapPage(isOfficial: true)),
+          );
+        } else if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SocialTrendsPage()),
+          );
+        } else if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ReportsManagementPage()),
+          );
+        } else {
+          setState(() {
+            _currentNavIndex = index;
+          });
+        }
       },
       onNotificationTap: () => _showNotifications(),
-      body: Container(
-        color: lightGray,
-        child: RefreshIndicator(
+      body: RefreshIndicator(
           onRefresh: () async => _refreshDashboard(),
           color: turquoise,
           child: SingleChildScrollView(
@@ -181,10 +198,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 _buildOverviewCardsGrid(),
                 const SizedBox(height: 24),
                 
-                // Quick Access Shortcuts
-                _buildQuickAccessSection(),
-                const SizedBox(height: 24),
-                
                 // Bottom CTA
                 _buildSendAlertCTA(),
                 const SizedBox(height: 20),
@@ -192,8 +205,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildWelcomeSection(String currentTime) {
@@ -243,9 +255,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: 1.2,
       children: [
         _buildOverviewCard(
           title: 'Total Reports Today',
@@ -387,79 +399,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     );
   }
 
-  Widget _buildQuickAccessSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Quick Access',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: darkNavy,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildQuickAccessButton(
-              icon: Icons.map,
-              label: 'Hazard Map',
-              color: turquoise,
-              onTap: () => Navigator.pushNamed(context, '/hazard_map'),
-            ),
-            _buildQuickAccessButton(
-              icon: Icons.trending_up,
-              label: 'Social Trends',
-              color: seaGreen,
-              onTap: () => Navigator.pushNamed(context, '/social_trends'),
-            ),
-            _buildQuickAccessButton(
-              icon: Icons.assignment,
-              label: 'Citizen Reports',
-              color: aquaBlue,
-              onTap: () => Navigator.pushNamed(context, '/reports_management'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
-  Widget _buildQuickAccessButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: gray700,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
 
 
@@ -467,7 +407,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => Navigator.pushNamed(context, '/alerts'),
+        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Alerts feature coming soon')),
+        ),
         icon: const Icon(Icons.campaign, color: Colors.white),
         label: const Text(
           'Send New Alert 🚨',
@@ -498,15 +440,24 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
   }
 
   void _navigateToPendingValidations() {
-    Navigator.pushNamed(context, '/pending_validations');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ReportsManagementPage()),
+    );
   }
 
   void _navigateToHighSeverityAlerts() {
-    Navigator.pushNamed(context, '/high_severity_alerts');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ReportsManagementPage()),
+    );
   }
 
   void _navigateToActiveAlerts() {
-    Navigator.pushNamed(context, '/active_alerts');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ReportsManagementPage()),
+    );
   }
 
 

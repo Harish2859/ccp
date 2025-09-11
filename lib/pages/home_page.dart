@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
         } else if (index == 2) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const HazardMapPage()),
+            MaterialPageRoute(builder: (context) => const HazardMapPage(isOfficial: false)),
           );
         } else if (index == 3) {
           Navigator.push(
