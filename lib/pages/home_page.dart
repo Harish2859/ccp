@@ -7,6 +7,7 @@ import 'hazard_map_page.dart';
 import 'my_reports_page.dart';
 import 'social_trends_page.dart';
 import 'profile_page.dart';
+import 'comments_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -15,15 +16,16 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentNavIndex = 0;
-
+  late AnimationController _likeAnimationController;
+  
   // Sample climate posts data
   final List<Map<String, dynamic>> climatePosts = [
     {
       'id': 1,
       'username': 'INCOIS Official',
-      'userAvatar': 'avatar1',
+      'userAvatar': 'I',
       'timeAgo': '2 hours ago',
       'imagePath': 'assets/images/image 1.jpg',
       'title': 'High Waves Alert - Kerala Coast',
@@ -33,12 +35,17 @@ class _HomePageState extends State<HomePage> {
       'comments': 18,
       'shares': 32,
       'isLiked': false,
+      'isSaved': false,
       'alertType': 'warning',
+      'commentsList': [
+        {'username': 'fisherman_kerala', 'text': 'Thank you for the update! Staying safe.', 'time': '1h'},
+        {'username': 'coastal_guard', 'text': 'All boats have been alerted. Safety first!', 'time': '45m'}
+      ]
     },
     {
       'id': 2,
       'username': 'Weather India',
-      'userAvatar': 'avatar2',
+      'userAvatar': 'W',
       'timeAgo': '4 hours ago',
       'imagePath': 'assets/images/image 2.jpg',
       'title': 'Cyclone Update - Bay of Bengal',
@@ -48,12 +55,17 @@ class _HomePageState extends State<HomePage> {
       'comments': 67,
       'shares': 156,
       'isLiked': true,
+      'isSaved': true,
       'alertType': 'critical',
+      'commentsList': [
+        {'username': 'odisha_resident', 'text': 'We are prepared. Thanks for the early warning!', 'time': '2h'},
+        {'username': 'emergency_ap', 'text': 'Evacuation procedures activated in vulnerable areas.', 'time': '1h'}
+      ]
     },
     {
       'id': 3,
       'username': 'Coast Guard India',
-      'userAvatar': 'avatar3',
+      'userAvatar': 'C',
       'timeAgo': '6 hours ago',
       'imagePath': 'assets/images/image 3.jpg',
       'title': 'All Clear - Mumbai Coast',
@@ -63,9 +75,29 @@ class _HomePageState extends State<HomePage> {
       'comments': 23,
       'shares': 12,
       'isLiked': false,
+      'isSaved': false,
       'alertType': 'safe',
+      'commentsList': [
+        {'username': 'mumbai_sailor', 'text': 'Great news! Perfect weather for sailing today.', 'time': '3h'},
+        {'username': 'fishing_crew', 'text': 'Setting out for the day. Thank you!', 'time': '2h'}
+      ]
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _likeAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _likeAnimationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,64 +153,64 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.all(0),
           itemCount: allPosts.length,
           itemBuilder: (context, index) {
-            return _buildClimatePost(allPosts[index]);
+            return _buildInstagramPost(allPosts[index]);
           },
         ),
       ),
     );
   }
 
-  Widget _buildClimatePost(Map<String, dynamic> post) {
-    Color alertColor = _getAlertColor(post['alertType']);
-    IconData alertIcon = _getAlertIcon(post['alertType']);
-
+  Widget _buildInstagramPost(Map<String, dynamic> post) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: const Color(0xFFF8F9FA),
-          width: 1,
-        ),
-      ),
+      margin: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Post header
-          _buildPostHeader(post),
+          // Post header (Instagram style)
+          _buildInstagramPostHeader(post),
           
-          // Image placeholder with climate info
-          _buildImageSection(post, alertColor, alertIcon),
+          // Image with alert overlay
+          _buildInstagramImageSection(post),
           
-          // Action buttons (like, comment, share)
-          _buildActionButtons(post),
+          // Action buttons (Instagram style)
+          _buildInstagramActionBar(post),
           
-          // Post content
-          _buildPostContent(post),
+          // Likes count
+          _buildLikesSection(post),
+          
+          // Caption
+          _buildCaptionSection(post),
+          
+          // Comments preview
+          _buildCommentsPreview(post),
+          
+          // Time posted
+          _buildTimeSection(post),
         ],
       ),
     );
   }
 
-  Widget _buildPostHeader(Map<String, dynamic> post) {
+  Widget _buildInstagramPostHeader(Map<String, dynamic> post) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // User avatar
+          // Profile picture
           CircleAvatar(
             radius: 20,
             backgroundColor: const Color(0xFF0096C7),
             child: Text(
-              post['username'][0],
+              post['userAvatar'] ?? post['username'][0],
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
             ),
           ),
           const SizedBox(width: 12),
-          // Username and time
+          // Username and location
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,18 +218,31 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   post['username'],
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF03045E),
-                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.black,
                   ),
                 ),
-                Text(
-                  post['timeAgo'],
-                  style: const TextStyle(
-                    color: Color(0xFF495057),
-                    fontSize: 12,
+                if (post['location'] != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        size: 12,
+                        color: Color(0xFF8E8E93),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        post['location'],
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF8E8E93),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -205,94 +250,69 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             onPressed: () => _showMoreOptions(post),
             icon: const Icon(
-              Icons.more_vert,
-              color: Color(0xFF495057),
+              Icons.more_horiz,
+              color: Colors.black,
+              size: 24,
             ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildImageSection(Map<String, dynamic> post, Color alertColor, IconData alertIcon) {
+  Widget _buildInstagramImageSection(Map<String, dynamic> post) {
     return Stack(
       children: [
-        // Actual image
-        Container(
-          width: double.infinity,
-          height: 300,
-          child: Image.asset(
-            post['imagePath'],
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: const Color(0xFFF8F9FA),
-                child: const Center(
-                  child: Icon(
-                    Icons.image,
-                    size: 80,
-                    color: Color(0xFF495057),
+        // Main image
+        AspectRatio(
+          aspectRatio: 1.0, // Square aspect ratio like Instagram
+          child: Container(
+            width: double.infinity,
+            child: Image.asset(
+              post['imagePath'],
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: const Color(0xFFF8F9FA),
+                  child: const Center(
+                    child: Icon(
+                      Icons.image,
+                      size: 80,
+                      color: Color(0xFF8E8E93),
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
-        // Alert badge
+        // Alert badge (top-left)
         Positioned(
           top: 12,
           left: 12,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: alertColor,
-              borderRadius: BorderRadius.circular(20),
+              color: _getAlertColor(post['alertType']),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  alertIcon,
-                  color: Colors.white,
-                  size: 16,
+                Text(
+                  _getAlertEmoji(post['alertType']),
+                  style: const TextStyle(fontSize: 12),
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  post['alertType'].toUpperCase(),
+                  post['alertType'].toString().toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Location badge
-        Positioned(
-          bottom: 12,
-          right: 12,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  color: Colors.white,
-                  size: 12,
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  post['location'],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
@@ -303,7 +323,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildActionButtons(Map<String, dynamic> post) {
+  Widget _buildInstagramActionBar(Map<String, dynamic> post) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -311,66 +331,51 @@ class _HomePageState extends State<HomePage> {
           // Like button
           GestureDetector(
             onTap: () => _toggleLike(post),
-            child: Row(
-              children: [
-                Icon(
-                  post['isLiked'] ? Icons.favorite : Icons.favorite_border,
-                  color: post['isLiked'] ? Colors.red : const Color(0xFF495057),
-                  size: 24,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${post['likes']}',
-                  style: const TextStyle(
-                    color: Color(0xFF495057),
-                    fontWeight: FontWeight.w500,
+            child: AnimatedBuilder(
+              animation: _likeAnimationController,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 1.0 + (_likeAnimationController.value * 0.2),
+                  child: Icon(
+                    post['isLiked'] ? Icons.favorite : Icons.favorite_border,
+                    color: post['isLiked'] ? Colors.red : Colors.black,
+                    size: 28,
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           // Comment button
           GestureDetector(
-            onTap: () => _showComments(post),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.chat_bubble_outline,
-                  color: Color(0xFF495057),
-                  size: 24,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${post['comments']}',
-                  style: const TextStyle(
-                    color: Color(0xFF495057),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            onTap: () => _openComments(post),
+            child: const Icon(
+              Icons.chat_bubble_outline,
+              color: Colors.black,
+              size: 28,
             ),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           // Share button
           GestureDetector(
             onTap: () => _sharePost(post),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.share_outlined,
-                  color: Color(0xFF495057),
-                  size: 24,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${post['shares']}',
-                  style: const TextStyle(
-                    color: Color(0xFF495057),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            child: Transform.rotate(
+              angle: -0.3, // Slight rotation like Instagram
+              child: const Icon(
+                Icons.send,
+                color: Colors.black,
+                size: 28,
+              ),
+            ),
+          ),
+          const Spacer(),
+          // Bookmark button
+          GestureDetector(
+            onTap: () => _toggleSave(post),
+            child: Icon(
+              post['isSaved'] ? Icons.bookmark : Icons.bookmark_border,
+              color: Colors.black,
+              size: 28,
             ),
           ),
         ],
@@ -378,32 +383,104 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPostContent(Map<String, dynamic> post) {
+  Widget _buildLikesSection(Map<String, dynamic> post) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Text(
+        '${post['likes']} likes',
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: Colors.black,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCaptionSection(Map<String, dynamic> post) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black,
+            height: 1.3,
+          ),
+          children: [
+            TextSpan(
+              text: post['username'],
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const TextSpan(text: ' '),
+            TextSpan(
+              text: post['description'],
+              style: const TextStyle(fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCommentsPreview(Map<String, dynamic> post) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
-          Text(
-            post['title'],
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF03045E),
+          // View all comments button
+          GestureDetector(
+            onTap: () => _openComments(post),
+            child: Text(
+              'View all ${post['comments']} comments',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF8E8E93),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Description
-          Text(
-            post['description'],
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF495057),
-              height: 1.4,
+          // Show latest comment if exists
+          if (post['commentsList'] != null && post['commentsList'].isNotEmpty) ...[
+            const SizedBox(height: 4),
+            ...post['commentsList'].take(1).map<Widget>((comment) => 
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: comment['username'],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const TextSpan(text: ' '),
+                    TextSpan(
+                      text: comment['text'],
+                      style: const TextStyle(fontWeight: FontWeight.normal),
+                    ),
+                  ],
+                ),
+              )
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildTimeSection(Map<String, dynamic> post) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Text(
+        post['timeAgo'].toString().toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          color: Color(0xFF8E8E93),
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }
@@ -411,26 +488,26 @@ class _HomePageState extends State<HomePage> {
   Color _getAlertColor(String alertType) {
     switch (alertType) {
       case 'critical':
-        return const Color(0xFFD00000); // Red
+        return const Color(0xFFDC2626); // Red
       case 'warning':
-        return const Color(0xFFFF6F61); // Coral Orange
+        return const Color(0xFFF59E0B); // Orange
       case 'safe':
-        return const Color(0xFF52B788); // Lime Green
+        return const Color(0xFF059669); // Green
       default:
-        return const Color(0xFF0096C7); // Aqua Blue
+        return const Color(0xFF3B82F6); // Blue
     }
   }
 
-  IconData _getAlertIcon(String alertType) {
+  String _getAlertEmoji(String alertType) {
     switch (alertType) {
       case 'critical':
-        return Icons.warning;
+        return '🚨';
       case 'warning':
-        return Icons.info;
+        return '⚠️';
       case 'safe':
-        return Icons.check_circle;
+        return '✅';
       default:
-        return Icons.info_outline;
+        return 'ℹ️';
     }
   }
 
@@ -439,47 +516,46 @@ class _HomePageState extends State<HomePage> {
       post['isLiked'] = !post['isLiked'];
       post['likes'] += post['isLiked'] ? 1 : -1;
     });
+    
+    // Trigger like animation
+    _likeAnimationController.forward().then((_) {
+      _likeAnimationController.reverse();
+    });
   }
 
-  void _showComments(Map<String, dynamic> post) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Comments',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF03045E),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Comments feature coming soon...',
-                style: TextStyle(
-                  color: Color(0xFF495057),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF023E8A),
-                ),
-                child: const Text(
-                  'Close',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void _toggleSave(Map<String, dynamic> post) {
+    setState(() {
+      post['isSaved'] = !post['isSaved'];
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          post['isSaved'] ? 'Post saved!' : 'Post removed from saved',
+        ),
+        backgroundColor: const Color(0xFF2EC4B6),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _openComments(Map<String, dynamic> post) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CommentsPage(
+          post: post,
+          onCommentAdded: (updatedPost) {
+            setState(() {
+              // Update the post in the list
+              final index = climatePosts.indexWhere((p) => p['id'] == updatedPost['id']);
+              if (index != -1) {
+                climatePosts[index] = updatedPost;
+              }
+            });
+          },
+        ),
+      ),
     );
   }
 
@@ -498,25 +574,46 @@ class _HomePageState extends State<HomePage> {
   void _showMoreOptions(Map<String, dynamic> post) {
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
               ListTile(
                 leading: const Icon(Icons.bookmark_border),
-                title: const Text('Save Post'),
+                title: Text(post['isSaved'] ? 'Remove from saved' : 'Save Post'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _toggleSave(post);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.link),
+                title: const Text('Copy Link'),
                 onTap: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Post saved!')),
+                    const SnackBar(content: Text('Link copied to clipboard!')),
                   );
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.flag_outlined),
-                title: const Text('Report'),
+                leading: const Icon(Icons.flag_outlined, color: Colors.red),
+                title: const Text('Report', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -524,6 +621,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
+              const SizedBox(height: 20),
             ],
           ),
         );
