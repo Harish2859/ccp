@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum UserRole { citizen, volunteer, official }
+enum UserRole { citizen, volunteer }
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -15,63 +15,28 @@ class BottomNavBar extends StatelessWidget {
   }) : super(key: key);
 
   List<BottomNavigationBarItem> _getNavItems() {
-    if (userRole == UserRole.official) {
-      return const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard_outlined),
-          activeIcon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.map_outlined),
-          activeIcon: Icon(Icons.map),
-          label: 'Map',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.trending_up_outlined),
-          activeIcon: Icon(Icons.trending_up),
-          label: 'Trends',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.assignment_outlined),
-          activeIcon: Icon(Icons.assignment),
-          label: 'Reports',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ];
-    } else {
-      return const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.add_location_outlined),
-          activeIcon: Icon(Icons.add_location),
-          label: 'Report',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.map_outlined),
-          activeIcon: Icon(Icons.map),
-          label: 'Map',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.trending_up_outlined),
-          activeIcon: Icon(Icons.trending_up),
-          label: 'Trends',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ];
-    }
+    return const [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.add_location_outlined),
+        activeIcon: Icon(Icons.add_location),
+        label: 'Report',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.trending_up_outlined),
+        activeIcon: Icon(Icons.trending_up),
+        label: 'Trends',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.person_outline),
+        activeIcon: Icon(Icons.person),
+        label: 'Profile',
+      ),
+    ];
   }
 
   @override

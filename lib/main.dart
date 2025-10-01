@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pages/login_page.dart';
+import 'pages/change_password_page.dart';
+import 'pages/my_reports_page.dart';
 import 'services/demo_data.dart';
 
 void main() {
@@ -19,6 +21,10 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
       ),
       home: const SplashScreen(),
+      routes: {
+        '/change_password': (context) => const ChangePasswordPage(),
+        '/my_reports': (context) => const MyReportsPage(),
+      },
     );
   }
 }

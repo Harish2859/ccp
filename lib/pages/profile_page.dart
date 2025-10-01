@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../components/bottom_nav_bar.dart';
 import 'login_page.dart';
+import 'home_page.dart';
+import 'report_page.dart';
+import 'social_trends_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -23,8 +27,8 @@ class _ProfilePageState extends State<ProfilePage> {
   bool smsNotifications = false;
   bool emailNotifications = true;
   String selectedLanguage = "English";
+  int _currentNavIndex = 3;
 
-  
   final ImagePicker _picker = ImagePicker();
 
   // OceanPulse Color Palette
@@ -54,7 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () => _showAdvancedSettings(context),
+            onPressed: () => _showAccountSettings(context),
           ),
         ],
       ),
@@ -69,10 +73,6 @@ class _ProfilePageState extends State<ProfilePage> {
             
             // Location Preference Section
             _buildLocationSection(),
-            const SizedBox(height: 20),
-            
-            // Account Settings Section
-            _buildAccountSettingsSection(),
             const SizedBox(height: 32),
             
             // Logout Button
@@ -80,6 +80,11 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: _currentNavIndex,
+        userRole: UserRole.citizen,
+        onTap: _onNavTap,
       ),
     );
   }
@@ -664,19 +669,92 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showAdvancedSettings(BuildContext context) {
-    showDialog(
+  void _showAccountSettings(BuildContext context) {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Advanced Settings'),
-          content: const Text('Advanced settings panel coming soon!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          minChildSize: 0.5,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Account Settings',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: darkNavy,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        // Change Password
+                        _buildSettingTile(
+                          icon: Icons.lock,
+                          title: 'Change Password',
+                          subtitle: 'Update your account password',
+                          onTap: () {
+                            Navigator.pop(context);
+                            _navigateToChangePassword();
+                          },
+                        ),
+                        
+                        // Language Settings
+                        _buildSettingTile(
+                          icon: Icons.language,
+                          title: 'Change Language',
+                          subtitle: selectedLanguage,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showLanguageModal();
+                          },
+                        ),
+                        
+                        // Notification Preferences
+                        _buildSettingTile(
+                          icon: Icons.notifications,
+                          title: 'Notification Preferences',
+                          subtitle: 'Manage alert preferences',
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showNotificationPreferences();
+                          },
+                        ),
+                        
+                        // Dark Mode
+                        ListTile(
+                          leading: const Icon(Icons.dark_mode, color: turquoise),
+                          title: const Text('Dark Mode'),
+                          subtitle: Text(darkMode ? 'Enabled' : 'Disabled'),
+                          trailing: Switch(
+                            value: darkMode,
+                            onChanged: (bool value) {
+                              setState(() {
+                                darkMode = value;
+                              });
+                            },
+                            activeColor: seaGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -712,6 +790,31 @@ class _ProfilePageState extends State<ProfilePage> {
       children: const [
         Text('Protecting our oceans through community-driven monitoring and reporting.'),
       ],
+    );
+  }
+
+  void _onNavTap(int index) {
+    if (index == 3) return; // Already on profile page
+    
+    Widget page;
+    switch (index) {
+      case 0:
+        page = const HomePage();
+        break;
+      case 1:
+        page = const ReportPage();
+        break;
+      case 2:
+        page = const SocialTrendsPage();
+        break;
+      default:
+        return;
+    }
+    
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+      (route) => false,
     );
   }
 

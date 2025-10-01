@@ -15,6 +15,7 @@ class MainLayout extends StatelessWidget {
   final VoidCallback? onDrawerSettingsTap;
   final VoidCallback? onMyReportsTap;
   final VoidCallback? onSendAlertTap;
+  final VoidCallback? onSavedTap;
   final VoidCallback? onLogoutTap;
 
   const MainLayout({
@@ -30,6 +31,7 @@ class MainLayout extends StatelessWidget {
     this.onDrawerSettingsTap,
     this.onMyReportsTap,
     this.onSendAlertTap,
+    this.onSavedTap,
     this.onLogoutTap,
   }) : super(key: key);
 
@@ -38,15 +40,19 @@ class MainLayout extends StatelessWidget {
     return Scaffold(
       appBar: TopAppBar(
         title: title,
-        isAdmin: userRole == UserRole.official,
+        isAdmin: false,
         onNotificationTap: onNotificationTap,
         onMessageTap: onMessageTap,
         onSettingsTap: onSettingsTap,
       ),
       drawer: AppDrawer(
+        userName: 'User',
+        userState: 'Kerala',
+        userEmail: 'user@example.com',
         onSettingsTap: onDrawerSettingsTap,
         onMyReportsTap: onMyReportsTap,
         onSendAlertTap: onSendAlertTap,
+        onSavedTap: onSavedTap,
         onLogoutTap: onLogoutTap,
       ),
       body: body,

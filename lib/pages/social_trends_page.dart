@@ -3,11 +3,13 @@ import 'dart:convert';
 import '../models/social_post.dart';
 import '../models/report_model.dart';
 import '../services/social_post_service.dart';
+import '../components/bottom_nav_bar.dart';
+import 'home_page.dart';
+import 'report_page.dart';
+import 'profile_page.dart';
 
 class SocialTrendsPage extends StatefulWidget {
-  final bool isOfficial;
-  
-  const SocialTrendsPage({super.key, this.isOfficial = false});
+  const SocialTrendsPage({super.key});
 
   @override
   State<SocialTrendsPage> createState() => _SocialTrendsPageState();
@@ -17,9 +19,23 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
   String selectedRegion = 'All India';
   String selectedTimeRange = 'Last 24h';
   String? selectedKeyword;
+  final TextEditingController _searchController = TextEditingController();
+  bool _showSearchDropdown = false;
+  List<String> _filteredKeywords = [];
+  int _currentNavIndex = 2;
 
   final List<String> regions = ['All India', 'Tamil Nadu', 'Kerala', 'Goa', 'Andhra Pradesh', 'Odisha'];
   final List<String> timeRanges = ['Last 1h', 'Last 6h', 'Last 24h', 'Last 7d'];
+  
+  final List<Map<String, String>> disasterTypes = [
+    {'value': 'all', 'label': 'All Disasters'},
+    {'value': 'coastal_flooding', 'label': 'Coastal Flooding / Inundation 🌊'},
+    {'value': 'high_waves', 'label': 'High Waves / Swell Surge 🌊'},
+    {'value': 'abnormal_sea_behaviour', 'label': 'Abnormal Sea Behaviour / Tides 🌀'},
+    {'value': 'coastal_erosion', 'label': 'Coastal Erosion / Infrastructure Damage 🏗️'},
+    {'value': 'storm_surge', 'label': 'Storm Surge / Cyclone Impact 🌪️'},
+  ];
+  String selectedDisasterType = 'all';
 
   final Map<String, int> keywordFrequency = {
     'Tsunami': 45,
@@ -40,16 +56,74 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
 
   List<SocialPost> get filteredPosts {
     var posts = SocialPostService.getPosts();
+    
+    // Filter by region
     if (selectedRegion != 'All India') {
       posts = posts.where((p) => p.region == selectedRegion).toList();
     }
+    
+    // Filter by search keyword
+    if (_searchController.text.isNotEmpty) {
+      posts = posts.where((p) => 
+        p.content.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+        p.username.toLowerCase().contains(_searchController.text.toLowerCase())
+      ).toList();
+    }
+    
+    // Filter by selected keyword from cloud
     if (selectedKeyword != null) {
       posts = posts.where((p) => p.content.toLowerCase().contains(selectedKeyword!.toLowerCase())).toList();
     }
+    
+    // Filter by time range (mock implementation)
+    final now = DateTime.now();
+    posts = posts.where((p) {
+      switch (selectedTimeRange) {
+        case 'Last 1h':
+          return now.difference(p.timestamp).inHours < 1;
+        case 'Last 6h':
+          return now.difference(p.timestamp).inHours < 6;
+        case 'Last 24h':
+          return now.difference(p.timestamp).inHours < 24;
+        case 'Last 7d':
+          return now.difference(p.timestamp).inDays < 7;
+        default:
+          return true;
+      }
+    }).toList();
+    
     return posts;
   }
 
   Map<String, int> get analytics => SocialPostService.getAnalytics();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredKeywords = keywordFrequency.keys.toList();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      if (_searchController.text.isEmpty) {
+        _filteredKeywords = keywordFrequency.keys.toList();
+        _showSearchDropdown = false;
+      } else {
+        _filteredKeywords = keywordFrequency.keys
+            .where((keyword) => keyword.toLowerCase().contains(_searchController.text.toLowerCase()))
+            .toList();
+        _showSearchDropdown = true;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,35 +133,140 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
         title: const Text('Social Trends'),
         backgroundColor: const Color(0xFF023E8A),
         foregroundColor: Colors.white,
-        actions: widget.isOfficial ? [
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            onPressed: _exportData,
-            tooltip: 'Export Data',
-          ),
-        ] : null,
+        actions: null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.isOfficial) ...[
-              _buildAnalyticsCards(),
-              const SizedBox(height: 20),
-            ],
+            _buildSearchBar(),
+            const SizedBox(height: 16),
             _buildFiltersSection(),
-            const SizedBox(height: 20),
-            _buildKeywordCloud(),
-            const SizedBox(height: 20),
-            _buildSentimentBar(),
-            const SizedBox(height: 20),
-            if (widget.isOfficial)
-              _buildCompareButton(),
             const SizedBox(height: 20),
             _buildTrendingPostsList(),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: _currentNavIndex,
+        userRole: UserRole.citizen,
+        onTap: _onNavTap,
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search keywords, posts, or users...',
+              prefixIcon: const Icon(Icons.search, color: Color(0xFF00B4D8)),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _showSearchDropdown = false;
+                          selectedKeyword = null;
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF00B4D8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onTap: () {
+              setState(() {
+                _showSearchDropdown = true;
+              });
+            },
+          ),
+          if (_showSearchDropdown)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  if (_searchController.text.isEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text('Trending Keywords', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    ),
+                    ...keywordFrequency.entries.take(5).map((entry) {
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.trending_up, size: 16, color: Color(0xFF00B4D8)),
+                        title: Text(entry.key, style: const TextStyle(fontSize: 14)),
+                        trailing: Text('${entry.value}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        onTap: () {
+                          _searchController.text = entry.key;
+                          setState(() {
+                            selectedKeyword = entry.key;
+                            _showSearchDropdown = false;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ] else ...[
+                    if (_filteredKeywords.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('Search Results', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                      ),
+                      ..._filteredKeywords.take(5).map((keyword) {
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.search, size: 16, color: Color(0xFF00B4D8)),
+                          title: Text(keyword, style: const TextStyle(fontSize: 14)),
+                          trailing: Text('${keywordFrequency[keyword]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          onTap: () {
+                            _searchController.text = keyword;
+                            setState(() {
+                              selectedKeyword = keyword;
+                              _showSearchDropdown = false;
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ] else ...[
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('No matching keywords found', style: TextStyle(color: Colors.grey)),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -116,6 +295,7 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: selectedRegion,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Region',
                     border: OutlineInputBorder(),
@@ -141,148 +321,36 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
             ],
           ),
           const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () => setState(() {}),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00B4D8)),
-            child: const Text('Apply Filters', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKeywordCloud() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Trending Keywords', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: keywordFrequency.entries.map((entry) {
-              final isSelected = selectedKeyword == entry.key;
-              final fontSize = (12.0 + (entry.value / 5)).clamp(12.0, 20.0);
-              final opacity = (0.3 + (entry.value / 60)).clamp(0.3, 1.0);
-              
-              return GestureDetector(
-                onTap: () {
-                  setState(() => selectedKeyword = isSelected ? null : entry.key);
-                  if (widget.isOfficial && !isSelected) {
-                    _showKeywordCrossCheck(entry.key);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF00B4D8) : const Color(0xFF00B4D8).withOpacity(opacity),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${entry.key} (${entry.value})',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSentimentBar() {
-    final positive = sentimentData['positive']!.toInt().clamp(1, 100);
-    final neutral = sentimentData['neutral']!.toInt().clamp(1, 100);
-    final negative = sentimentData['negative']!.toInt().clamp(1, 100);
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Sentiment Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Container(
-            height: 40,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: positive,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2EC4B6),
-                      borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
-                    ),
-                    child: Center(
-                      child: Text('${sentimentData['positive']!.toInt()}%', 
-                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: neutral,
-                  child: Container(
-                    color: Colors.grey,
-                    child: Center(
-                      child: Text('${sentimentData['neutral']!.toInt()}%', 
-                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: negative,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF6F61),
-                      borderRadius: BorderRadius.only(topRight: Radius.circular(20), bottomRight: Radius.circular(20)),
-                    ),
-                    child: Center(
-                      child: Text('${sentimentData['negative']!.toInt()}%', 
-                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                ),
-              ],
+          DropdownButtonFormField<String>(
+            value: selectedDisasterType,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Disaster Type',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
+            items: disasterTypes.map((type) => DropdownMenuItem(value: type['value'], child: Text(type['label']!))).toList(),
+            onChanged: (value) => setState(() => selectedDisasterType = value!),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildSentimentLabel('Positive', const Color(0xFF2EC4B6)),
-              _buildSentimentLabel('Neutral', Colors.grey),
-              _buildSentimentLabel('Negative', const Color(0xFFFF6F61)),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => setState(() {}),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00B4D8)),
+                  child: const Text('Apply Filters', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _clearAllFilters,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[600],
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Clear All'),
+              ),
             ],
           ),
         ],
@@ -290,16 +358,9 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
     );
   }
 
-  Widget _buildSentimentLabel(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
+
+
+
 
   Widget _buildTrendingPostsList() {
     return Column(
@@ -354,17 +415,16 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
                         Text(_formatTimestamp(post.timestamp), style: const TextStyle(color: Colors.grey, fontSize: 12)),
                       ],
                     ),
-                    if (post.location != null)
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, size: 12, color: Colors.grey),
-                          Text(post.location!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        ],
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.person_pin_circle, size: 12, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text('Chennai, Tamil Nadu', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              _getSentimentIcon(post.sentiment),
             ],
           ),
           const SizedBox(height: 12),
@@ -380,16 +440,33 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
               const SizedBox(width: 4),
               Text('${post.retweets}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               const Spacer(),
-              if (widget.isOfficial) ...[
-                _buildValidationButtons(post),
-                const SizedBox(width: 8),
-              ],
               GestureDetector(
                 onTap: () => _showPostDetails(post),
                 child: const Text('View Details', style: TextStyle(color: Color(0xFF00B4D8), fontSize: 12)),
               ),
             ],
           ),
+          if (post.location != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00B4D8).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on, size: 12, color: Color(0xFF00B4D8)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Disaster Location: ${post.location!}',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF00B4D8), fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -419,265 +496,54 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
     }
   }
 
-  Widget _buildAnalyticsCards() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildAnalyticsCard(
-            'Posts Today',
-            analytics['postsToday'].toString(),
-            Icons.today,
-            const Color(0xFF00B4D8),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildAnalyticsCard(
-            'Hazard Keywords',
-            analytics['hazardKeywords'].toString(),
-            Icons.warning,
-            const Color(0xFFFF6F61),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildAnalyticsCard(
-            'Negative %',
-            '${analytics['negativePercentage']}%',
-            Icons.sentiment_dissatisfied,
-            const Color(0xFFFF6F61),
-          ),
-        ),
-      ],
-    );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void _clearAllFilters() {
+    setState(() {
+      selectedRegion = 'All India';
+      selectedTimeRange = 'Last 24h';
+      selectedKeyword = null;
+      _searchController.clear();
+      _showSearchDropdown = false;
+    });
   }
 
-  Widget _buildAnalyticsCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompareButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _showCompareModal,
-        icon: const Icon(Icons.compare_arrows, color: Colors.white),
-        label: const Text('Compare Reports vs Social Media', style: TextStyle(color: Colors.white)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF023E8A),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildValidationButtons(SocialPost post) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildValidationButton(Icons.check, Colors.green, 'relevant', post),
-        const SizedBox(width: 4),
-        _buildValidationButton(Icons.close, Colors.red, 'false', post),
-        const SizedBox(width: 4),
-        _buildValidationButton(Icons.help_outline, Colors.orange, 'verify', post),
-      ],
-    );
-  }
-
-  Widget _buildValidationButton(IconData icon, Color color, String status, SocialPost post) {
-    final isSelected = post.status == status;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          SocialPostService.updatePostStatus(post, isSelected ? 'pending' : status);
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.grey[300],
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Icon(icon, size: 12, color: isSelected ? Colors.white : Colors.grey[600]),
-      ),
-    );
-  }
-
-  void _showKeywordCrossCheck(String keyword) {
-    final posts = SocialPostService.getPostsByKeyword(keyword);
-    final reports = SocialPostService.getRelatedReports(keyword);
+  void _onNavTap(int index) {
+    if (index == 2) return; // Already on social trends page
     
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Cross-Check: $keyword'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: Column(
-            children: [
-              Text('${posts.length} related posts, ${reports.length} citizen reports'),
-              const SizedBox(height: 16),
-              Expanded(
-                child: DefaultTabController(
-                  length: 2,
-                  child: Column(
-                    children: [
-                      const TabBar(
-                        tabs: [
-                          Tab(text: 'Posts'),
-                          Tab(text: 'Reports'),
-                        ],
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            ListView.builder(
-                              itemCount: posts.length,
-                              itemBuilder: (context, index) => ListTile(
-                                title: Text(posts[index].username),
-                                subtitle: Text(posts[index].content, maxLines: 2),
-                                trailing: _getSentimentIcon(posts[index].sentiment),
-                              ),
-                            ),
-                            ListView.builder(
-                              itemCount: reports.length,
-                              itemBuilder: (context, index) => ListTile(
-                                title: Text(reports[index].hazardType),
-                                subtitle: Text(reports[index].description, maxLines: 2),
-                                trailing: Text(reports[index].severity),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCompareModal() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reports vs Social Media'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 300,
-          child: DefaultTabController(
-            length: 2,
-            child: Column(
-              children: [
-                const TabBar(
-                  tabs: [
-                    Tab(text: 'Latest Reports'),
-                    Tab(text: 'Latest Posts'),
-                  ],
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      ListView.builder(
-                        itemCount: 3,
-                        itemBuilder: (context, index) => ListTile(
-                          title: Text('Report ${index + 1}'),
-                          subtitle: const Text('Sample report description'),
-                          trailing: const Text('High'),
-                        ),
-                      ),
-                      ListView.builder(
-                        itemCount: filteredPosts.take(3).length,
-                        itemBuilder: (context, index) {
-                          final post = filteredPosts[index];
-                          return ListTile(
-                            title: Text(post.username),
-                            subtitle: Text(post.content, maxLines: 2),
-                            trailing: _getSentimentIcon(post.sentiment),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _exportData() {
-    final posts = filteredPosts;
-    final jsonData = posts.map((post) => post.toJson()).toList();
-    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+    Widget page;
+    switch (index) {
+      case 0:
+        page = const HomePage();
+        break;
+      case 1:
+        page = const ReportPage();
+        break;
+      case 3:
+        page = const ProfilePage();
+        break;
+      default:
+        return;
+    }
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Exported ${posts.length} posts to JSON'),
-        backgroundColor: const Color(0xFF2EC4B6),
-        action: SnackBarAction(
-          label: 'View',
-          textColor: Colors.white,
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Exported Data'),
-                content: SingleChildScrollView(
-                  child: Text(jsonString, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+      (route) => false,
     );
   }
 
@@ -706,7 +572,6 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
                     ],
                   ),
                 ),
-                _getSentimentIcon(post.sentiment),
               ],
             ),
             const SizedBox(height: 16),
@@ -733,15 +598,7 @@ class _SocialTrendsPageState extends State<SocialTrendsPage> {
                 ],
               ),
             ],
-            if (widget.isOfficial) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(post.status.toUpperCase()),
-                ],
-              ),
-            ]
+
           ],
         ),
       ),

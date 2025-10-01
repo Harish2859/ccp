@@ -5,7 +5,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/report_model.dart';
 import '../services/report_service.dart';
+import '../components/bottom_nav_bar.dart';
 import 'location_picker_page.dart';
+import 'home_page.dart';
+import 'social_trends_page.dart';
+import 'profile_page.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({Key? key}) : super(key: key);
@@ -18,6 +22,7 @@ class _ReportPageState extends State<ReportPage> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  int _currentNavIndex = 1;
 
   
   // Form data
@@ -29,14 +34,19 @@ class _ReportPageState extends State<ReportPage> {
   bool isLocationCaptured = false;
   bool isOnline = true; // This would be determined by connectivity check
   bool isSubmitting = false;
+  final TextEditingController _postContentController = TextEditingController();
+  bool showPostSection = false;
+  String? selectedPostDisasterType;
+  Map<String, double>? postLocation;
+  bool isPostLocationCaptured = false;
 
-  // Hazard types with emojis
+  // Coastal hazard types
   final List<Map<String, String>> hazardTypes = [
-    {'value': 'tsunami', 'label': 'Tsunami 🌊', 'emoji': '🌊'},
-    {'value': 'storm_surge', 'label': 'Storm Surge 🌪️', 'emoji': '🌪️'},
-    {'value': 'flood', 'label': 'Flood 🌧️', 'emoji': '🌧️'},
-    {'value': 'high_waves', 'label': 'High Waves 🌊', 'emoji': '🌊'},
-    {'value': 'unusual_tide', 'label': 'Unusual Tide 🌐', 'emoji': '🌐'},
+    {'value': 'coastal_flooding', 'label': 'Coastal Flooding / Inundation 🌊'},
+    {'value': 'high_waves', 'label': 'High Waves / Swell Surge 🌊'},
+    {'value': 'abnormal_sea_behaviour', 'label': 'Abnormal Sea Behaviour / Tides 🌀'},
+    {'value': 'coastal_erosion', 'label': 'Coastal Erosion / Infrastructure Damage 🏗️'},
+    {'value': 'storm_surge', 'label': 'Storm Surge / Cyclone Impact 🌪️'},
   ];
 
   final List<String> severityLevels = ['Low', 'Medium', 'High'];
@@ -54,7 +64,17 @@ class _ReportPageState extends State<ReportPage> {
       backgroundColor: const Color(0xFFFFFFFF),
       appBar: _buildAppBar(),
       body: _buildBody(),
-      bottomNavigationBar: _buildSubmitButton(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSubmitButton(),
+          BottomNavBar(
+            currentIndex: _currentNavIndex,
+            userRole: UserRole.citizen,
+            onTap: _onNavTap,
+          ),
+        ],
+      ),
     );
   }
 
@@ -145,6 +165,11 @@ class _ReportPageState extends State<ReportPage> {
             
             // Severity selector
             _buildSeveritySelector(),
+            
+            const SizedBox(height: 20),
+            
+            // Post upload section
+            _buildPostUploadSection(),
             
             const SizedBox(height: 100), // Space for bottom button
           ],
@@ -646,6 +671,162 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
+  Widget _buildPostUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => showPostSection = !showPostSection),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0096C7).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF0096C7).withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.post_add, color: Color(0xFF0096C7)),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Create Social Post',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF03045E),
+                    ),
+                  ),
+                ),
+                Icon(
+                  showPostSection ? Icons.expand_less : Icons.expand_more,
+                  color: const Color(0xFF0096C7),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showPostSection) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF0096C7).withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Post Content',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF03045E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _postContentController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Share your thoughts about this situation...',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedPostDisasterType,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Disaster Type',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: hazardTypes.map((hazard) => DropdownMenuItem(
+                    value: hazard['value'],
+                    child: Text(hazard['label']!),
+                  )).toList(),
+                  onChanged: (value) => setState(() => selectedPostDisasterType = value),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            isPostLocationCaptured ? Icons.location_on : Icons.location_off,
+                            color: isPostLocationCaptured ? const Color(0xFF52B788) : const Color(0xFF495057),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isPostLocationCaptured ? 'Location captured' : 'Location not available',
+                              style: TextStyle(
+                                color: isPostLocationCaptured ? const Color(0xFF52B788) : const Color(0xFF495057),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (postLocation != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Lat: ${postLocation!['latitude']!.toStringAsFixed(6)}, Lng: ${postLocation!['longitude']!.toStringAsFixed(6)}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _getPostLocation,
+                              icon: const Icon(Icons.my_location, size: 16),
+                              label: const Text('Get Location'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0096C7),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _pinPostOnMap,
+                              icon: const Icon(Icons.map, size: 16),
+                              label: const Text('Pin on Map'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF0096C7),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildSubmitButton() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -970,9 +1151,77 @@ class _ReportPageState extends State<ReportPage> {
     print('Saving locally: $reportData');
   }
 
+
+
+  void _getPostLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        postLocation = {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        };
+        isPostLocationCaptured = true;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get location: $e')),
+      );
+    }
+  }
+
+  void _pinPostOnMap() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LocationPickerPage(
+          initialLocation: postLocation != null 
+              ? LatLng(postLocation!['latitude']!, postLocation!['longitude']!)
+              : null,
+        ),
+      ),
+    );
+    
+    if (result != null && result is LatLng) {
+      setState(() {
+        postLocation = {
+          'latitude': result.latitude,
+          'longitude': result.longitude,
+        };
+        isPostLocationCaptured = true;
+      });
+    }
+  }
+
+  void _onNavTap(int index) {
+    if (index == 1) return; // Already on report page
+    
+    Widget page;
+    switch (index) {
+      case 0:
+        page = const HomePage();
+        break;
+      case 2:
+        page = const SocialTrendsPage();
+        break;
+      case 3:
+        page = const ProfilePage();
+        break;
+      default:
+        return;
+    }
+    
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+      (route) => false,
+    );
+  }
+
   @override
   void dispose() {
     _descriptionController.dispose();
+    _postContentController.dispose();
     super.dispose();
   }
 }

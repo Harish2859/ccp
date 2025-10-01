@@ -1,13 +1,58 @@
 import 'package:flutter/material.dart';
-import '../components/index.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import '../components/index.dart'; // Assuming MainLayout, UserRole are here
 import '../services/feed_service.dart';
 import 'notifications_page.dart';
 import 'report_page.dart';
-import 'hazard_map_page.dart';
+
 import 'my_reports_page.dart';
 import 'social_trends_page.dart';
 import 'profile_page.dart';
 import 'comments_page.dart';
+import 'saved_posts_page.dart';
+
+// --- UI Style Constants for a Modern Look ---
+class AppStyles {
+  // Colors
+  static const Color primaryColor = Color(0xFF0077B6);
+  static const Color accentColor = Color(0xFF00B4D8);
+  static const Color backgroundColor = Color(0xFFF8F9FA);
+  static const Color cardColor = Colors.white;
+  static const Color primaryTextColor = Color(0xFF212529);
+  static const Color secondaryTextColor = Color(0xFF6C757D);
+  static const Color errorColor = Color(0xFFDC2626);
+  static const Color warningColor = Color(0xFFF59E0B);
+  static const Color safeColor = Color(0xFF10B981);
+
+  // Spacing & Radius
+  static const double paddingSmall = 8.0;
+  static const double paddingMedium = 16.0;
+  static const double radius = 16.0;
+
+  // Typography
+  static final TextStyle baseTextStyle = GoogleFonts.poppins();
+
+  static final TextStyle headingStyle = baseTextStyle.copyWith(
+    fontWeight: FontWeight.w600,
+    fontSize: 16,
+    color: primaryTextColor,
+  );
+
+  static final TextStyle bodyStyle = baseTextStyle.copyWith(
+    fontWeight: FontWeight.normal,
+    fontSize: 14,
+    color: primaryTextColor,
+    height: 1.4,
+  );
+
+  static final TextStyle subtitleStyle = baseTextStyle.copyWith(
+    fontSize: 12,
+    color: secondaryTextColor,
+  );
+}
+// ---------------------------------------------
+
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -19,13 +64,22 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentNavIndex = 0;
   late AnimationController _likeAnimationController;
+  String _selectedFilter = 'All';
+  String _selectedLanguage = 'English';
+  final List<Map<String, dynamic>> _savedPosts = [];
   
-  // Sample climate posts data
+  // Combine static and dynamic posts into a single list
+  late List<Map<String, dynamic>> _allPosts;
+
+  final List<String> _filterOptions = ['All', 'Critical 🚨', 'Warning ⚠️', 'Safe ✅'];
+  final List<String> _languages = ['English', 'Hindi', 'Tamil', 'Telugu', 'Malayalam'];
+  
   final List<Map<String, dynamic>> climatePosts = [
-    {
+     {
       'id': 1,
       'username': 'INCOIS Official',
       'userAvatar': 'I',
+      'isVerified': true,
       'timeAgo': '2 hours ago',
       'imagePath': 'assets/images/image 1.jpg',
       'title': 'High Waves Alert - Kerala Coast',
@@ -46,6 +100,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       'id': 2,
       'username': 'Weather India',
       'userAvatar': 'W',
+      'isVerified': true,
       'timeAgo': '4 hours ago',
       'imagePath': 'assets/images/image 2.jpg',
       'title': 'Cyclone Update - Bay of Bengal',
@@ -66,6 +121,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       'id': 3,
       'username': 'Coast Guard India',
       'userAvatar': 'C',
+      'isVerified': true,
       'timeAgo': '6 hours ago',
       'imagePath': 'assets/images/image 3.jpg',
       'title': 'All Clear - Mumbai Coast',
@@ -88,9 +144,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _likeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
+    // Initialize the combined list of posts
+    _allPosts = [...FeedService.getAll(), ...climatePosts];
+    // Populate saved posts initially
+    _savedPosts.addAll(_allPosts.where((p) => p['isSaved'] == true));
   }
 
   @override
@@ -101,280 +161,210 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // Combine static posts with dynamic alerts from FeedService
-    final allPosts = [...FeedService.getAll(), ...climatePosts];
+    final filteredPosts = _filterPosts(_allPosts);
     
     return MainLayout(
       title: 'Home',
       currentNavIndex: _currentNavIndex,
-      userRole: UserRole.citizen,
-      onNavTap: (index) {
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ReportPage()),
-          );
-        } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const HazardMapPage(isOfficial: false)),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SocialTrendsPage()),
-          );
-        } else if (index == 4) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfilePage()),
-          );
-        } else {
-          setState(() {
-            _currentNavIndex = index;
-          });
-        }
-      },
-      onNotificationTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const NotificationsPage()),
-        );
-      },
-      onMyReportsTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const MyReportsPage()),
-        );
-      },
+      userRole: UserRole.citizen, // Example role
+      onNavTap: _onNavTap,
+      onNotificationTap: () => _navigateTo(const NotificationsPage()),
+      onMyReportsTap: () => _navigateTo(const MyReportsPage()),
+      onSavedTap: () => _navigateTo(SavedPostsPage(savedPosts: _savedPosts)),
       body: Container(
-        color: const Color(0xFFFFFFFF),
-        child: ListView.builder(
-          padding: const EdgeInsets.all(0),
-          itemCount: allPosts.length,
-          itemBuilder: (context, index) {
-            return _buildInstagramPost(allPosts[index]);
-          },
+        color: AppStyles.backgroundColor,
+        child: Column(
+          children: [
+            _buildFilterBar(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refreshFeed,
+                color: AppStyles.primaryColor,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppStyles.paddingSmall, 
+                    vertical: AppStyles.paddingMedium,
+                  ),
+                  itemCount: filteredPosts.length,
+                  itemBuilder: (context, index) {
+                    return _buildPostCard(filteredPosts[index]);
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+  
+  void _onNavTap(int index) {
+    if (index == 0) {
+      setState(() => _currentNavIndex = index);
+      return;
+    }
+    
+    Widget page;
+    switch (index) {
+      case 1:
+        page = const ReportPage();
+        break;
+      case 2:
+        page = const SocialTrendsPage();
+        break;
+      case 3:
+        page = const ProfilePage();
+        break;
+      default:
+        return;
+    }
+    
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+      (route) => false,
+    );
+  }
 
-  Widget _buildInstagramPost(Map<String, dynamic> post) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+  void _navigateTo(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> post) {
+    return Card(
+      elevation: 4,
+      shadowColor: AppStyles.primaryColor.withOpacity(0.1),
+      margin: const EdgeInsets.only(bottom: AppStyles.paddingMedium),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.radius)),
+      clipBehavior: Clip.antiAlias, // Ensures content respects the rounded corners
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Post header (Instagram style)
-          _buildInstagramPostHeader(post),
-          
-          // Image with alert overlay
-          _buildInstagramImageSection(post),
-          
-          // Action buttons (Instagram style)
-          _buildInstagramActionBar(post),
-          
-          // Likes count
-          _buildLikesSection(post),
-          
-          // Caption
-          _buildCaptionSection(post),
-          
-          // Comments preview
-          _buildCommentsPreview(post),
-          
-          // Time posted
-          _buildTimeSection(post),
+          _buildPostHeader(post),
+          _buildImageSection(post),
+          _buildActionBar(post),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppStyles.paddingMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${post['likes']} likes', style: AppStyles.headingStyle.copyWith(fontSize: 14)),
+                const SizedBox(height: AppStyles.paddingSmall),
+                _buildCaptionSection(post),
+                const SizedBox(height: AppStyles.paddingSmall),
+                _buildCommentsPreview(post),
+                const SizedBox(height: AppStyles.paddingSmall),
+                Text(post['timeAgo'].toString().toUpperCase(), style: AppStyles.subtitleStyle.copyWith(fontSize: 10)),
+                const SizedBox(height: AppStyles.paddingMedium),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInstagramPostHeader(Map<String, dynamic> post) {
+  Widget _buildPostHeader(Map<String, dynamic> post) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(AppStyles.paddingMedium, AppStyles.paddingMedium, AppStyles.paddingSmall, AppStyles.paddingMedium),
       child: Row(
         children: [
-          // Profile picture
           CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xFF0096C7),
+            radius: 22,
+            backgroundColor: AppStyles.primaryColor.withOpacity(0.8),
             child: Text(
               post['userAvatar'] ?? post['username'][0],
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: AppStyles.baseTextStyle.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
           const SizedBox(width: 12),
-          // Username and location
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  post['username'],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
+                Row(
+                  children: [
+                    Text(post['username'], style: AppStyles.headingStyle),
+                    if (post['isVerified'] == true) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.verified, size: 18, color: AppStyles.primaryColor),
+                    ],
+                  ],
                 ),
                 if (post['location'] != null) ...[
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: Color(0xFF8E8E93),
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        post['location'],
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF8E8E93),
-                        ),
-                      ),
+                      const Icon(Icons.location_on, size: 14, color: AppStyles.secondaryTextColor),
+                      const SizedBox(width: 4),
+                      Text(post['location'], style: AppStyles.subtitleStyle),
                     ],
                   ),
                 ],
               ],
             ),
           ),
-          // More options
           IconButton(
             onPressed: () => _showMoreOptions(post),
-            icon: const Icon(
-              Icons.more_horiz,
-              color: Colors.black,
-              size: 24,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.more_horiz, color: AppStyles.secondaryTextColor),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInstagramImageSection(Map<String, dynamic> post) {
-    return Stack(
-      children: [
-        // Main image
-        AspectRatio(
-          aspectRatio: 1.0, // Square aspect ratio like Instagram
-          child: Container(
-            width: double.infinity,
-            child: Image.asset(
-              post['imagePath'],
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: const Color(0xFFF8F9FA),
-                  child: const Center(
-                    child: Icon(
-                      Icons.image,
-                      size: 80,
-                      color: Color(0xFF8E8E93),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-        // Alert badge (top-left)
-        Positioned(
-          top: 12,
-          left: 12,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getAlertColor(post['alertType']),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _getAlertEmoji(post['alertType']),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  post['alertType'].toString().toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+  Widget _buildImageSection(Map<String, dynamic> post) {
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: Image.asset(
+        post['imagePath'],
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: AppStyles.backgroundColor,
+            child: const Center(child: Icon(Icons.image_not_supported, size: 50, color: AppStyles.secondaryTextColor)),
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildInstagramActionBar(Map<String, dynamic> post) {
+  Widget _buildActionBar(Map<String, dynamic> post) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppStyles.paddingSmall, vertical: AppStyles.paddingSmall / 2),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Like button
-          GestureDetector(
-            onTap: () => _toggleLike(post),
-            child: AnimatedBuilder(
-              animation: _likeAnimationController,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: 1.0 + (_likeAnimationController.value * 0.2),
-                  child: Icon(
+          Row(
+            children: [
+              ScaleTransition(
+                scale: Tween(begin: 1.0, end: 1.2).animate(
+                  CurvedAnimation(parent: _likeAnimationController, curve: Curves.elasticOut)
+                ),
+                child: IconButton(
+                  onPressed: () => _toggleLike(post),
+                  icon: Icon(
                     post['isLiked'] ? Icons.favorite : Icons.favorite_border,
-                    color: post['isLiked'] ? Colors.red : Colors.black,
+                    color: post['isLiked'] ? AppStyles.errorColor : AppStyles.primaryTextColor,
                     size: 28,
                   ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Comment button
-          GestureDetector(
-            onTap: () => _openComments(post),
-            child: const Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.black,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Share button
-          GestureDetector(
-            onTap: () => _sharePost(post),
-            child: Transform.rotate(
-              angle: -0.3, // Slight rotation like Instagram
-              child: const Icon(
-                Icons.send,
-                color: Colors.black,
-                size: 28,
+                ),
               ),
-            ),
+              IconButton(
+                onPressed: () => _openComments(post),
+                icon: const Icon(Icons.chat_bubble_outline, color: AppStyles.primaryTextColor, size: 28),
+              ),
+              IconButton(
+                onPressed: () => _sharePost(post),
+                icon: const Icon(Icons.send_outlined, color: AppStyles.primaryTextColor, size: 28),
+              ),
+            ],
           ),
-          const Spacer(),
-          // Bookmark button
-          GestureDetector(
-            onTap: () => _toggleSave(post),
-            child: Icon(
+          IconButton(
+            onPressed: () => _toggleSave(post),
+            icon: Icon(
               post['isSaved'] ? Icons.bookmark : Icons.bookmark_border,
-              color: Colors.black,
+              color: AppStyles.primaryTextColor,
               size: 28,
             ),
           ),
@@ -382,132 +372,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
     );
   }
-
-  Widget _buildLikesSection(Map<String, dynamic> post) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Text(
-        '${post['likes']} likes',
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: Colors.black,
-        ),
-      ),
-    );
-  }
-
+  
   Widget _buildCaptionSection(Map<String, dynamic> post) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black,
-            height: 1.3,
-          ),
-          children: [
-            TextSpan(
-              text: post['username'],
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const TextSpan(text: ' '),
-            TextSpan(
-              text: post['description'],
-              style: const TextStyle(fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
+    return RichText(
+      text: TextSpan(
+        style: AppStyles.bodyStyle,
+        children: [
+          TextSpan(text: post['username'], style: const TextStyle(fontWeight: FontWeight.bold)),
+          const TextSpan(text: ' '),
+          TextSpan(text: post['description']),
+        ],
       ),
     );
   }
 
   Widget _buildCommentsPreview(Map<String, dynamic> post) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // View all comments button
-          GestureDetector(
-            onTap: () => _openComments(post),
-            child: Text(
-              'View all ${post['comments']} comments',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF8E8E93),
-              ),
-            ),
-          ),
-          // Show latest comment if exists
-          if (post['commentsList'] != null && post['commentsList'].isNotEmpty) ...[
-            const SizedBox(height: 4),
-            ...post['commentsList'].take(1).map<Widget>((comment) => 
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: comment['username'],
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const TextSpan(text: ' '),
-                    TextSpan(
-                      text: comment['text'],
-                      style: const TextStyle(fontWeight: FontWeight.normal),
-                    ),
-                  ],
-                ),
-              )
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeSection(Map<String, dynamic> post) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    return GestureDetector(
+      onTap: () => _openComments(post),
       child: Text(
-        post['timeAgo'].toString().toUpperCase(),
-        style: const TextStyle(
-          fontSize: 11,
-          color: Color(0xFF8E8E93),
-          fontWeight: FontWeight.w400,
-          letterSpacing: 0.2,
-        ),
+        'View all ${post['comments']} comments',
+        style: AppStyles.subtitleStyle,
       ),
     );
   }
 
   Color _getAlertColor(String alertType) {
     switch (alertType) {
-      case 'critical':
-        return const Color(0xFFDC2626); // Red
-      case 'warning':
-        return const Color(0xFFF59E0B); // Orange
-      case 'safe':
-        return const Color(0xFF059669); // Green
-      default:
-        return const Color(0xFF3B82F6); // Blue
-    }
-  }
-
-  String _getAlertEmoji(String alertType) {
-    switch (alertType) {
-      case 'critical':
-        return '🚨';
-      case 'warning':
-        return '⚠️';
-      case 'safe':
-        return '✅';
-      default:
-        return 'ℹ️';
+      case 'critical': return AppStyles.errorColor;
+      case 'warning': return AppStyles.warningColor;
+      case 'safe': return AppStyles.safeColor;
+      default: return AppStyles.secondaryTextColor;
     }
   }
 
@@ -516,116 +410,201 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       post['isLiked'] = !post['isLiked'];
       post['likes'] += post['isLiked'] ? 1 : -1;
     });
-    
-    // Trigger like animation
-    _likeAnimationController.forward().then((_) {
-      _likeAnimationController.reverse();
-    });
+    _likeAnimationController.forward().then((_) => _likeAnimationController.reverse());
   }
 
   void _toggleSave(Map<String, dynamic> post) {
     setState(() {
       post['isSaved'] = !post['isSaved'];
+      if (post['isSaved']) {
+        _savedPosts.add(post);
+      } else {
+        _savedPosts.removeWhere((p) => p['id'] == post['id']);
+      }
     });
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          post['isSaved'] ? 'Post saved!' : 'Post removed from saved',
-        ),
-        backgroundColor: const Color(0xFF2EC4B6),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    _showSnackBar(post['isSaved'] ? 'Post saved!' : 'Post removed from saved');
   }
 
   void _openComments(Map<String, dynamic> post) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CommentsPage(
-          post: post,
-          onCommentAdded: (updatedPost) {
-            setState(() {
-              // Update the post in the list
-              final index = climatePosts.indexWhere((p) => p['id'] == updatedPost['id']);
-              if (index != -1) {
-                climatePosts[index] = updatedPost;
-              }
-            });
-          },
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.3,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: AppStyles.backgroundColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.radius)),
+          ),
+          child: CommentsPage(
+            post: post,
+            onCommentAdded: (updatedPost) {
+              setState(() {
+                final index = _allPosts.indexWhere((p) => p['id'] == updatedPost['id']);
+                if (index != -1) {
+                  _allPosts[index] = updatedPost;
+                }
+              });
+            },
+          ),
         ),
       ),
     );
   }
 
   void _sharePost(Map<String, dynamic> post) {
+    final text = "${post['title']}\n\n${post['description']}\n\nShared from my app!";
+    Share.share(text);
     setState(() {
-      post['shares'] += 1;
+      post['shares'] += 1; // Optionally update share count locally
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Post shared successfully!'),
-        backgroundColor: Color(0xFF2EC4B6),
-      ),
-    );
   }
 
   void _showMoreOptions(Map<String, dynamic> post) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppStyles.cardColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.radius)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+        return Padding(
+          padding: const EdgeInsets.all(AppStyles.paddingSmall),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar
               Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppStyles.paddingMedium),
               ListTile(
-                leading: const Icon(Icons.bookmark_border),
-                title: Text(post['isSaved'] ? 'Remove from saved' : 'Save Post'),
+                leading: Icon(post['isSaved'] ? Icons.bookmark : Icons.bookmark_border, color: AppStyles.primaryTextColor),
+                title: Text(post['isSaved'] ? 'Remove from saved' : 'Save Post', style: AppStyles.bodyStyle),
                 onTap: () {
                   Navigator.pop(context);
                   _toggleSave(post);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.link),
-                title: const Text('Copy Link'),
+                leading: const Icon(Icons.notifications_outlined, color: AppStyles.primaryTextColor),
+                title: Text('Subscribe to location alerts', style: AppStyles.bodyStyle),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Link copied to clipboard!')),
-                  );
+                  _subscribeToLocation(post['location']);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.flag_outlined, color: Colors.red),
-                title: const Text('Report', style: TextStyle(color: Colors.red)),
+                leading: const Icon(Icons.flag_outlined, color: AppStyles.errorColor),
+                title: const Text('Report', style: TextStyle(color: AppStyles.errorColor)),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Post reported!')),
-                  );
+                  _showSnackBar('Post reported!');
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppStyles.paddingSmall),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(vertical: AppStyles.paddingSmall),
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppStyles.paddingMedium),
+              itemCount: _filterOptions.length,
+              itemBuilder: (context, index) {
+                final filter = _filterOptions[index];
+                final isSelected = _selectedFilter == filter;
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppStyles.paddingSmall),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedFilter = filter),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppStyles.primaryColor : AppStyles.cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: isSelected ? AppStyles.primaryColor : Colors.grey[300]!),
+                      ),
+                      child: Text(
+                        filter,
+                        style: AppStyles.bodyStyle.copyWith(
+                          color: isSelected ? Colors.white : AppStyles.primaryTextColor,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.language, color: AppStyles.secondaryTextColor),
+            onSelected: (language) {
+              setState(() => _selectedLanguage = language);
+              _showSnackBar('Language changed to $language');
+            },
+            itemBuilder: (context) => _languages
+                .map((lang) => PopupMenuItem(value: lang, child: Text(lang, style: AppStyles.bodyStyle)))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _filterPosts(List<Map<String, dynamic>> posts) {
+    if (_selectedFilter == 'All') return posts;
+    return posts.where((post) {
+      switch (_selectedFilter) {
+        case 'Critical 🚨': return post['alertType'] == 'critical';
+        case 'Warning ⚠️': return post['alertType'] == 'warning';
+        case 'Safe ✅': return post['alertType'] == 'safe';
+        default: return true;
+      }
+    }).toList();
+  }
+
+  Future<void> _refreshFeed() async {
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() {
+      // In a real app, you would fetch new data here.
+      // For demonstration, we'll just shuffle the existing posts.
+      _allPosts.shuffle();
+    });
+  }
+
+  void _subscribeToLocation(String? location) {
+    if (location != null) {
+      _showSnackBar('Subscribed to alerts for $location');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: AppStyles.baseTextStyle.copyWith(color: Colors.white)),
+        backgroundColor: AppStyles.accentColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(AppStyles.paddingMedium),
+      ),
     );
   }
 }

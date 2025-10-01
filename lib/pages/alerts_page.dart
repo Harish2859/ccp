@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/alert.dart';
 import '../services/alert_service.dart';
+import '../services/feed_service.dart';
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({Key? key}) : super(key: key);
@@ -414,6 +415,7 @@ class _AlertsPageState extends State<AlertsPage> {
     );
 
     AlertService.addAlert(alert);
+    FeedService.addPost(alert); // Add to citizen feed
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
