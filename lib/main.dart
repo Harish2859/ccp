@@ -49,9 +49,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0077BE), // Ocean blue
-      body: SizedBox.expand(), // Blank screen
+    return Scaffold(
+      backgroundColor: const Color(0xFF0077BE), // Ocean blue
+      body: Center(
+        child: Image.asset(
+          'assets/images/logo.png',
+          width: 150,
+          height: 150,
+        ),
+      ),
     );
   }
 }

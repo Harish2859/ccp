@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../components/index.dart'; // Assuming MainLayout, UserRole are here
-import '../services/feed_service.dart';
+import '../services/feed_service.dart'; // Assuming this is kept for additional posts
 import 'notifications_page.dart';
 import 'report_page.dart';
 
@@ -11,31 +11,34 @@ import 'social_trends_page.dart';
 import 'profile_page.dart';
 import 'comments_page.dart';
 import 'saved_posts_page.dart';
+import 'incois_profile_page.dart';
 
-// --- UI Style Constants for a Modern Look ---
+// --- UI Style Constants for a Modern Look (Slightly Adjusted) ---
 class AppStyles {
   // Colors
-  static const Color primaryColor = Color(0xFF0077B6);
-  static const Color accentColor = Color(0xFF00B4D8);
-  static const Color backgroundColor = Color(0xFFF8F9FA);
+  static const Color primaryColor = Color(0xFF005A9C); // Deeper Blue for official feel
+  static const Color accentColor = Color(0xFF0077B6);
+  static const Color backgroundColor = Color(0xFFF0F2F5); // Lighter background for feed
   static const Color cardColor = Colors.white;
-  static const Color primaryTextColor = Color(0xFF212529);
-  static const Color secondaryTextColor = Color(0xFF6C757D);
-  static const Color errorColor = Color(0xFFDC2626);
-  static const Color warningColor = Color(0xFFF59E0B);
-  static const Color safeColor = Color(0xFF10B981);
+  static const Color primaryTextColor = Color(0xFF1C1E21);
+  static const Color secondaryTextColor = Color(0xFF606770);
+  static const Color errorColor = Color(0xFFC70039); // Stronger Red for Critical
+  static const Color warningColor = Color(0xFFFFC300); // Amber/Yellow for Warning
+  static const Color safeColor = Color(0xFF38A700); // Green for Safe
 
   // Spacing & Radius
   static const double paddingSmall = 8.0;
   static const double paddingMedium = 16.0;
-  static const double radius = 16.0;
+  static const double paddingLarge = 24.0;
+  static const double radius = 12.0; // Slightly less aggressive radius
+  static const double iconSize = 24.0;
 
   // Typography
   static final TextStyle baseTextStyle = GoogleFonts.poppins();
 
   static final TextStyle headingStyle = baseTextStyle.copyWith(
-    fontWeight: FontWeight.w600,
-    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontSize: 18,
     color: primaryTextColor,
   );
 
@@ -43,12 +46,18 @@ class AppStyles {
     fontWeight: FontWeight.normal,
     fontSize: 14,
     color: primaryTextColor,
-    height: 1.4,
+    height: 1.5,
   );
 
   static final TextStyle subtitleStyle = baseTextStyle.copyWith(
     fontSize: 12,
     color: secondaryTextColor,
+  );
+  
+  static final TextStyle alertTitleStyle = baseTextStyle.copyWith(
+    fontWeight: FontWeight.bold,
+    fontSize: 16,
+    color: primaryTextColor,
   );
 }
 // ---------------------------------------------
@@ -74,16 +83,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final List<String> _filterOptions = ['All', 'Critical 🚨', 'Warning ⚠️', 'Safe ✅'];
   final List<String> _languages = ['English', 'Hindi', 'Tamil', 'Telugu', 'Malayalam'];
   
-  final List<Map<String, dynamic>> climatePosts = [
-     {
+  // All posts are now from the single official source
+  final String _officialUsername = 'INCOIS Official';
+  final String _officialAvatar = '🇮🇳';
+  
+  final List<Map<String, dynamic>> _incoisPosts = [
+    {
       'id': 1,
       'username': 'INCOIS Official',
-      'userAvatar': 'I',
+      'userAvatar': '🇮🇳',
       'isVerified': true,
       'timeAgo': '2 hours ago',
       'imagePath': 'assets/images/image 1.jpg',
       'title': 'High Waves Alert - Kerala Coast',
-      'description': 'Wave heights of 2.5-3.5m expected along Kerala coast. Fishermen advised to avoid venturing into the sea.',
+      'description': 'Wave heights of 2.5-3.5m expected along Kerala coast. Fishermen advised to avoid venturing into the sea. **Stay safe!**',
       'location': 'Kerala, India',
       'likes': 245,
       'comments': 18,
@@ -98,13 +111,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     },
     {
       'id': 2,
-      'username': 'Weather India',
-      'userAvatar': 'W',
+      'username': 'INCOIS Official',
+      'userAvatar': '🇮🇳',
       'isVerified': true,
       'timeAgo': '4 hours ago',
       'imagePath': 'assets/images/image 2.jpg',
       'title': 'Cyclone Update - Bay of Bengal',
-      'description': 'Low pressure area in Bay of Bengal likely to intensify. Coastal areas of Andhra Pradesh and Odisha on alert.',
+      'description': 'Low pressure area in Bay of Bengal likely to intensify into a severe cyclonic storm. Coastal areas of Andhra Pradesh and Odisha on **HIGH ALERT**.',
       'location': 'Bay of Bengal',
       'likes': 892,
       'comments': 67,
@@ -119,13 +132,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     },
     {
       'id': 3,
-      'username': 'Coast Guard India',
-      'userAvatar': 'C',
+      'username': 'INCOIS Official',
+      'userAvatar': '🇮🇳',
       'isVerified': true,
       'timeAgo': '6 hours ago',
       'imagePath': 'assets/images/image 3.jpg',
       'title': 'All Clear - Mumbai Coast',
-      'description': 'Weather conditions normal along Mumbai coastline. Safe for maritime activities with usual precautions.',
+      'description': 'Weather conditions normal along Mumbai coastline. All maritime restrictions are lifted. Safe for all maritime activities with usual precautions.',
       'location': 'Mumbai, Maharashtra',
       'likes': 156,
       'comments': 23,
@@ -147,8 +160,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    // Initialize the combined list of posts
-    _allPosts = [...FeedService.getAll(), ...climatePosts];
+    // Initialize the combined list of posts (Using the official posts only)
+    _allPosts = [..._incoisPosts]; 
     // Populate saved posts initially
     _savedPosts.addAll(_allPosts.where((p) => p['isSaved'] == true));
   }
@@ -164,9 +177,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final filteredPosts = _filterPosts(_allPosts);
     
     return MainLayout(
-      title: 'Home',
+      title: 'INCOIS Alert Feed', // More specific title
       currentNavIndex: _currentNavIndex,
-      userRole: UserRole.citizen, // Example role
+      userRole: UserRole.citizen, 
       onNavTap: _onNavTap,
       onNotificationTap: () => _navigateTo(const NotificationsPage()),
       onMyReportsTap: () => _navigateTo(const MyReportsPage()),
@@ -182,7 +195,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 color: AppStyles.primaryColor,
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppStyles.paddingSmall, 
+                    horizontal: AppStyles.paddingMedium, // Increased padding
                     vertical: AppStyles.paddingMedium,
                   ),
                   itemCount: filteredPosts.length,
@@ -219,10 +232,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         return;
     }
     
-    Navigator.pushAndRemoveUntil(
+    // Using push replacement for navigation to main sections
+    Navigator.pushReplacement( 
       context,
       MaterialPageRoute(builder: (context) => page),
-      (route) => false,
     );
   }
 
@@ -231,31 +244,45 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildPostCard(Map<String, dynamic> post) {
-    return Card(
-      elevation: 4,
-      shadowColor: AppStyles.primaryColor.withOpacity(0.1),
+    return Container(
       margin: const EdgeInsets.only(bottom: AppStyles.paddingMedium),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.radius)),
-      clipBehavior: Clip.antiAlias, // Ensures content respects the rounded corners
+      decoration: BoxDecoration(
+        color: AppStyles.cardColor,
+        borderRadius: BorderRadius.circular(AppStyles.radius),
+        boxShadow: [
+          BoxShadow(
+            color: AppStyles.primaryTextColor.withOpacity(0.08), // Softer shadow
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildPostHeader(post),
           _buildImageSection(post),
-          _buildActionBar(post),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppStyles.paddingMedium),
+            padding: const EdgeInsets.all(AppStyles.paddingMedium),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${post['likes']} likes', style: AppStyles.headingStyle.copyWith(fontSize: 14)),
-                const SizedBox(height: AppStyles.paddingSmall),
+                // Alert Title (New Element)
+                Text(
+                  post['title'].toString().toUpperCase(), 
+                  style: AppStyles.alertTitleStyle.copyWith(
+                    color: _getAlertColor(post['alertType']),
+                  ),
+                ),
+                const SizedBox(height: AppStyles.paddingSmall / 2),
                 _buildCaptionSection(post),
-                const SizedBox(height: AppStyles.paddingSmall),
+                const SizedBox(height: AppStyles.paddingMedium),
+                _buildActionBar(post),
+                const Divider(height: 20, thickness: 0.5),
                 _buildCommentsPreview(post),
                 const SizedBox(height: AppStyles.paddingSmall),
                 Text(post['timeAgo'].toString().toUpperCase(), style: AppStyles.subtitleStyle.copyWith(fontSize: 10)),
-                const SizedBox(height: AppStyles.paddingMedium),
               ],
             ),
           ),
@@ -266,32 +293,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildPostHeader(Map<String, dynamic> post) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppStyles.paddingMedium, AppStyles.paddingMedium, AppStyles.paddingSmall, AppStyles.paddingMedium),
+      padding: const EdgeInsets.fromLTRB(AppStyles.paddingMedium, AppStyles.paddingMedium, AppStyles.paddingSmall, AppStyles.paddingSmall),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppStyles.primaryColor.withOpacity(0.8),
-            child: Text(
-              post['userAvatar'] ?? post['username'][0],
-              style: AppStyles.baseTextStyle.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const IncoisProfilePage()),
+            ),
+            child: CircleAvatar(
+              radius: 20,
+              backgroundColor: AppStyles.primaryColor,
+              child: Text(
+                _officialAvatar,
+                style: AppStyles.baseTextStyle.copyWith(fontSize: 18),
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(post['username'], style: AppStyles.headingStyle),
-                    if (post['isVerified'] == true) ...[
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const IncoisProfilePage()),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(_officialUsername, style: AppStyles.headingStyle.copyWith(fontSize: 16)),
                       const SizedBox(width: 4),
                       const Icon(Icons.verified, size: 18, color: AppStyles.primaryColor),
                     ],
-                  ],
-                ),
-                if (post['location'] != null) ...[
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
@@ -301,7 +336,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ],
                   ),
                 ],
-              ],
+              ),
             ),
           ),
           IconButton(
@@ -314,75 +349,126 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildImageSection(Map<String, dynamic> post) {
-    return AspectRatio(
-      aspectRatio: 1.0,
-      child: Image.asset(
-        post['imagePath'],
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: AppStyles.backgroundColor,
-            child: const Center(child: Icon(Icons.image_not_supported, size: 50, color: AppStyles.secondaryTextColor)),
-          );
-        },
-      ),
+    return Stack(
+      alignment: Alignment.topRight,
+      children: [
+        AspectRatio(
+          aspectRatio: 1.6, // Using a more cinematic aspect ratio
+          child: Image.asset(
+            post['imagePath'],
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: AppStyles.backgroundColor,
+                child: const Center(child: Icon(Icons.image_not_supported, size: 50, color: AppStyles.secondaryTextColor)),
+              );
+            },
+          ),
+        ),
+        // Alert Badge Overlay
+        _buildAlertBadge(post['alertType']),
+      ],
     );
   }
-
-  Widget _buildActionBar(Map<String, dynamic> post) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppStyles.paddingSmall, vertical: AppStyles.paddingSmall / 2),
+  
+  Widget _buildAlertBadge(String alertType) {
+    String text;
+    IconData icon;
+    Color color = _getAlertColor(alertType);
+    
+    switch (alertType) {
+      case 'critical': 
+        text = 'CRITICAL ALERT';
+        icon = Icons.error;
+        break;
+      case 'warning': 
+        text = 'WARNING';
+        icon = Icons.warning;
+        break;
+      case 'safe': 
+        text = 'ALL CLEAR';
+        icon = Icons.check_circle;
+        break;
+      default: return const SizedBox.shrink();
+    }
+    
+    return Container(
+      margin: const EdgeInsets.all(AppStyles.paddingSmall),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              ScaleTransition(
-                scale: Tween(begin: 1.0, end: 1.2).animate(
-                  CurvedAnimation(parent: _likeAnimationController, curve: Curves.elasticOut)
-                ),
-                child: IconButton(
-                  onPressed: () => _toggleLike(post),
-                  icon: Icon(
-                    post['isLiked'] ? Icons.favorite : Icons.favorite_border,
-                    color: post['isLiked'] ? AppStyles.errorColor : AppStyles.primaryTextColor,
-                    size: 28,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => _openComments(post),
-                icon: const Icon(Icons.chat_bubble_outline, color: AppStyles.primaryTextColor, size: 28),
-              ),
-              IconButton(
-                onPressed: () => _sharePost(post),
-                icon: const Icon(Icons.send_outlined, color: AppStyles.primaryTextColor, size: 28),
-              ),
-            ],
-          ),
-          IconButton(
-            onPressed: () => _toggleSave(post),
-            icon: Icon(
-              post['isSaved'] ? Icons.bookmark : Icons.bookmark_border,
-              color: AppStyles.primaryTextColor,
-              size: 28,
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: AppStyles.subtitleStyle.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
             ),
           ),
         ],
       ),
     );
   }
+
+
+  Widget _buildActionBar(Map<String, dynamic> post) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            ScaleTransition(
+              scale: Tween(begin: 1.0, end: 1.2).animate(
+                CurvedAnimation(parent: _likeAnimationController, curve: Curves.elasticOut)
+              ),
+              child: IconButton(
+                onPressed: () => _toggleLike(post),
+                icon: Icon(
+                  post['isLiked'] ? Icons.favorite : Icons.favorite_border,
+                  color: post['isLiked'] ? AppStyles.errorColor : AppStyles.secondaryTextColor,
+                  size: AppStyles.iconSize,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => _openComments(post),
+              icon: const Icon(Icons.chat_bubble_outline, color: AppStyles.secondaryTextColor, size: AppStyles.iconSize),
+            ),
+            IconButton(
+              onPressed: () => _sharePost(post),
+              icon: const Icon(Icons.share_outlined, color: AppStyles.secondaryTextColor, size: AppStyles.iconSize),
+            ),
+          ],
+        ),
+        // Display likes count prominently
+        Text('${post['likes']} likes', style: AppStyles.bodyStyle.copyWith(fontWeight: FontWeight.bold, fontSize: 13)),
+        
+        IconButton(
+          onPressed: () => _toggleSave(post),
+          icon: Icon(
+            post['isSaved'] ? Icons.bookmark : Icons.bookmark_border,
+            color: post['isSaved'] ? AppStyles.primaryColor : AppStyles.secondaryTextColor,
+            size: AppStyles.iconSize,
+          ),
+        ),
+      ],
+    );
+  }
   
   Widget _buildCaptionSection(Map<String, dynamic> post) {
-    return RichText(
-      text: TextSpan(
-        style: AppStyles.bodyStyle,
-        children: [
-          TextSpan(text: post['username'], style: const TextStyle(fontWeight: FontWeight.bold)),
-          const TextSpan(text: ' '),
-          TextSpan(text: post['description']),
-        ],
-      ),
+    return Text(
+      post['description'],
+      style: AppStyles.bodyStyle,
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -391,7 +477,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       onTap: () => _openComments(post),
       child: Text(
         'View all ${post['comments']} comments',
-        style: AppStyles.subtitleStyle,
+        style: AppStyles.subtitleStyle.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -410,7 +496,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       post['isLiked'] = !post['isLiked'];
       post['likes'] += post['isLiked'] ? 1 : -1;
     });
-    _likeAnimationController.forward().then((_) => _likeAnimationController.reverse());
+    // Run animation only if it was liked
+    if (post['isLiked']) {
+      _likeAnimationController.forward(from: 0.0).then((_) => _likeAnimationController.reverse());
+    }
   }
 
   void _toggleSave(Map<String, dynamic> post) {
@@ -423,11 +512,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       }
     });
     
-    _showSnackBar(post['isSaved'] ? 'Post saved!' : 'Post removed from saved');
+    _showSnackBar(post['isSaved'] ? 'Alert saved for later reference.' : 'Alert removed from saved.');
   }
 
   void _openComments(Map<String, dynamic> post) {
-    showModalBottomSheet(
+    // ... (unchanged _openComments logic) ...
+     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -457,14 +547,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _sharePost(Map<String, dynamic> post) {
-    final text = "${post['title']}\n\n${post['description']}\n\nShared from my app!";
-    Share.share(text);
+    final text = "INCOIS Alert: ${post['title']} - ${post['location']}\n\n${post['description']}\n\n#INCOIS #WeatherAlert";
+    Share.share(text, subject: post['title']);
     setState(() {
-      post['shares'] += 1; // Optionally update share count locally
+      post['shares'] = (post['shares'] as int) + 1;
     });
   }
 
   void _showMoreOptions(Map<String, dynamic> post) {
+    // ... (unchanged _showMoreOptions logic, except for SnackBar message) ...
     showModalBottomSheet(
       context: context,
       backgroundColor: AppStyles.cardColor,
@@ -485,7 +576,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               const SizedBox(height: AppStyles.paddingMedium),
               ListTile(
                 leading: Icon(post['isSaved'] ? Icons.bookmark : Icons.bookmark_border, color: AppStyles.primaryTextColor),
-                title: Text(post['isSaved'] ? 'Remove from saved' : 'Save Post', style: AppStyles.bodyStyle),
+                title: Text(post['isSaved'] ? 'Remove from saved' : 'Save Alert', style: AppStyles.bodyStyle),
                 onTap: () {
                   Navigator.pop(context);
                   _toggleSave(post);
@@ -493,7 +584,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               ListTile(
                 leading: const Icon(Icons.notifications_outlined, color: AppStyles.primaryTextColor),
-                title: Text('Subscribe to location alerts', style: AppStyles.bodyStyle),
+                title: Text('Subscribe to ${post['location']} alerts', style: AppStyles.bodyStyle),
                 onTap: () {
                   Navigator.pop(context);
                   _subscribeToLocation(post['location']);
@@ -501,10 +592,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: AppStyles.errorColor),
-                title: const Text('Report', style: TextStyle(color: AppStyles.errorColor)),
+                title: const Text('Report/Verify Alert Status', style: TextStyle(color: AppStyles.errorColor)),
                 onTap: () {
                   Navigator.pop(context);
-                  _showSnackBar('Post reported!');
+                  _showSnackBar('Alert flagged for review/verification.');
                 },
               ),
               const SizedBox(height: AppStyles.paddingSmall),
@@ -518,6 +609,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildFilterBar() {
     return Container(
       height: 60,
+      color: AppStyles.cardColor, // White background for the filter bar
       padding: const EdgeInsets.symmetric(vertical: AppStyles.paddingSmall),
       child: Row(
         children: [
@@ -535,17 +627,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     onTap: () => setState(() => _selectedFilter = filter),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppStyles.primaryColor : AppStyles.cardColor,
+                        color: isSelected ? AppStyles.primaryColor : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isSelected ? AppStyles.primaryColor : Colors.grey[300]!),
+                        border: Border.all(color: isSelected ? AppStyles.primaryColor : AppStyles.secondaryTextColor.withOpacity(0.5)),
                       ),
-                      child: Text(
-                        filter,
-                        style: AppStyles.bodyStyle.copyWith(
-                          color: isSelected ? Colors.white : AppStyles.primaryTextColor,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      child: Center( // Center the text within the button
+                        child: Text(
+                          filter.replaceAll('🚨', '').replaceAll('⚠️', '').replaceAll('✅', '').trim(), // Cleaned up text for a professional look
+                          style: AppStyles.bodyStyle.copyWith(
+                            color: isSelected ? Colors.white : AppStyles.primaryTextColor,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          ),
                         ),
                       ),
                     ),
@@ -554,8 +648,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               },
             ),
           ),
+          // Language Selector
           PopupMenuButton<String>(
-            icon: const Icon(Icons.language, color: AppStyles.secondaryTextColor),
+            icon: Row(
+              children: [
+                const Icon(Icons.language, color: AppStyles.secondaryTextColor, size: 20),
+                const SizedBox(width: 4),
+                Text(_selectedLanguage, style: AppStyles.subtitleStyle.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
             onSelected: (language) {
               setState(() => _selectedLanguage = language);
               _showSnackBar('Language changed to $language');
@@ -564,6 +665,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 .map((lang) => PopupMenuItem(value: lang, child: Text(lang, style: AppStyles.bodyStyle)))
                 .toList(),
           ),
+          const SizedBox(width: AppStyles.paddingMedium),
         ],
       ),
     );
@@ -572,38 +674,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Map<String, dynamic>> _filterPosts(List<Map<String, dynamic>> posts) {
     if (_selectedFilter == 'All') return posts;
     return posts.where((post) {
+      // Use the actual alertType value for filtering
+      String? postAlertType = post['alertType'];
+      if (postAlertType == null) return false;
+
       switch (_selectedFilter) {
-        case 'Critical 🚨': return post['alertType'] == 'critical';
-        case 'Warning ⚠️': return post['alertType'] == 'warning';
-        case 'Safe ✅': return post['alertType'] == 'safe';
+        case 'Critical 🚨': return postAlertType == 'critical';
+        case 'Warning ⚠️': return postAlertType == 'warning';
+        case 'Safe ✅': return postAlertType == 'safe';
         default: return true;
       }
     }).toList();
   }
 
   Future<void> _refreshFeed() async {
+    // Simulate API call delay
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
-      // In a real app, you would fetch new data here.
-      // For demonstration, we'll just shuffle the existing posts.
-      _allPosts.shuffle();
+      // Refresh logic: In a real app, you'd fetch new data.
+      _allPosts.shuffle(); 
+      _showSnackBar('Feed refreshed!');
     });
   }
 
   void _subscribeToLocation(String? location) {
     if (location != null) {
-      _showSnackBar('Subscribed to alerts for $location');
+      _showSnackBar('Subscribed to real-time alerts for $location.');
     }
   }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: AppStyles.baseTextStyle.copyWith(color: Colors.white)),
+        content: Text(message, style: AppStyles.baseTextStyle.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: AppStyles.accentColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(AppStyles.paddingMedium),
+        duration: const Duration(milliseconds: 1500),
       ),
     );
   }
